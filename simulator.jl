@@ -15,7 +15,7 @@ end
 
 function pid_callback(integrator)
     pid = integrator.p[5]
-    desired_water_level = integrator.p[4] # Reference value
+    desired_water_level = integrator.p[6] # Reference value
     water_level = integrator.u[1] # Current water level
     delta_valve_position = -clamp(pid(desired_water_level, water_level), -integrator.p[3], integrator.p[3]) # Update valve position using PID controller
     integrator.u[3] = delta_valve_position # Update valve position in the integrator's state
@@ -35,7 +35,7 @@ function simulate(pid_params)
     pid = DiscretePID(; K, Ts, Ti, Td)
 
     initial_conditions = [0.0, 0.0, 0.0] # Initial water level and valve position
-    parameters = [0.1, 0.2, 1.0/7.5, 10.0, pid] # Inflow rate, max outflow rate, opening speed, desired_water_level, pid
+    parameters = [filling_time, empty_first_halve_time, empty_second_halve_time, opening_time, desired_water_level, pid]
         
     cb = PeriodicCallback(pid_callback, Ts)
     tspan = (0.0, Tf)
