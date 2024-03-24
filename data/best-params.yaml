@@ -1,17 +1,19 @@
 
-simulation:
-  time: 200.0
-  sample_time: 0.1
-initial_conditions:
-  - 0.0
-  - 0.0
-  - 0.0
-parameters:
-  inflow_rate: 0.1
-  max_outflow_rate: 0.2
-  opening_speed: 1.0/7.5
-  desired_water_level: 10.0
-best_pid_params:
-  K: 1.2726757601615177e8
-  Ti: 2.4704983054502317e8
-  Td: 9.646333666824853
+system-1:
+  simulation:
+    time: 200.0
+    sample_time: 0.1
+  initial_conditions:
+    - 0.0
+    - 0.0
+    - 0.0
+  parameters:
+    inflow_rate: 0.1
+    max_outflow_rate: 0.2
+    opening_speed: 1.0/7.5
+    desired_water_level: 10.0
+  best_pid_params:
+    K: 1.2726757601615177e8
+    Ti: 2.4704983054502317e8
+    Td: 9.646333666824853
+  image: data/optimized_pid_variables.png

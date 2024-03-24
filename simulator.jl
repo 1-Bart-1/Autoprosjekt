@@ -26,28 +26,19 @@ function simulate(pid_params)
     # Define the PID controller
     Tf = 200.0   # Simulation time
     Ts = 0.1     # Sample time
+
+    filling_time = 60 # one minute to fully fill the tank
+    empty_first_halve_time = 15 # 15 seconds to empty half of the tank
+    empty_second_halve_time = 20
+    opening_time = 7.5 # amount of seconds to open the valve completely
+    desired_water_level = 10.0
     pid = DiscretePID(; K, Ts, Ti, Td)
-    
-    # Initial conditions
+
     initial_conditions = [0.0, 0.0, 0.0] # Initial water level and valve position
-    
-    # Parameters
     parameters = [0.1, 0.2, 1.0/7.5, 10.0, pid] # Inflow rate, max outflow rate, opening speed, desired_water_level, pid
-    
-    # Time span for the simulation
-    tspan = (0.0, Tf)
-    
-    # Define the callback function to update the valve position using the PID controller
-    # cb = PeriodicCallback(Ts) do integrator
-    #     desired_water_level = integrator.p[4] # Reference value
-    #     water_level = integrator.u[1] # Current water level
-    #     delta_valve_position = -clamp(pid(desired_water_level, water_level), -integrator.p[3], integrator.p[3]) # Update valve position using PID controller
-    #     integrator.u[3] = delta_valve_position # Update valve position in the integrator's state
-    # end
-
+        
     cb = PeriodicCallback(pid_callback, Ts)
-
-    # Create the ODE problem
+    tspan = (0.0, Tf)
     prob = ODEProblem(water_reservoir_ode, initial_conditions, tspan, parameters, callback=cb)
 
     # Solve the problem
