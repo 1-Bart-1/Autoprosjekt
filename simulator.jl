@@ -14,11 +14,13 @@ function water_reservoir_ode(du, u, p, t)
 end
 
 function pid_callback(integrator)
-    pid = integrator.p[5]
-    desired_water_level = integrator.p[4] # Reference value
-    water_level = integrator.u[1] # Current water level
-    delta_valve_position = -clamp(pid(desired_water_level, water_level), -integrator.p[3], integrator.p[3]) # Update valve position using PID controller
-    integrator.u[3] = delta_valve_position # Update valve position in the integrator's state
+    p = integrator.p
+    u = integrator.u
+    pid = p.pid
+    desired_water_level = p.desired_water_level # Reference value
+    water_level = u[1] # Current water level
+    delta_valve_position = -clamp(pid(desired_water_level, water_level), -p.opening_speed, p.opening_speed) # Update valve position using PID controller
+    u[3] = delta_valve_position # Update valve position in the integrator's state
 end
 
 function simulate(pid_params)
@@ -35,8 +37,8 @@ function simulate(pid_params)
     pid = DiscretePID(; K, Ts, Ti, Td)
 
     initial_conditions = [0.0, 0.0, 0.0] # Initial water level and valve position
-    parameters = [0.1, 0.2, 1.0/7.5, 10.0, pid] # Inflow rate, max outflow rate, opening speed, desired_water_level, pid
-        
+    parameters = (inflow_rate=0.1, max_outflow_rate=0.2, opening_speed=1.0/7.5, desired_water_level=10.0, pid=pid) # Inflow rate, max outflow rate, opening speed, desired_water_level, pid
+    
     cb = PeriodicCallback(pid_callback, Ts)
     tspan = (0.0, Tf)
     prob = ODEProblem(water_reservoir_ode, initial_conditions, tspan, parameters, callback=cb)
