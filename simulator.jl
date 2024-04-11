@@ -1,51 +1,67 @@
 using Plots
 using DiscretePIDs, ControlSystemsBase, OrdinaryDiffEq, DiffEqCallbacks
 using Optim
+using Polynomials
 
-function calc_outflow_line(p)
-    outflow_rate_75 =  (p.tank_height/2) / p.empty_upper_halve_time
-    outflow_rate_25 = (p.tank_height/2) / p.empty_lower_halve_time 
-    a = (outflow_rate_75 - outflow_rate_25) / (0.75 * p.tank_height - 0.25 * p.tank_height)
-    b = outflow_rate_25 - a * 0.25 * p.tank_height
-    line = (a=a, b=b)
-    return line
-end
+include("process_data.jl")
 
-function calc_outflow_rate(line, water_level)
-    outflow_rate = line.a * water_level + line.b
-    return outflow_rate
-end
+desired_water_level = 0.315
+control_method = "position"
 
 # Define the water reservoir ODE function
 function water_reservoir_ode(du, u, p, t)
     # inflow_rate, max_outflow_rate, opening_speed, desired_water_level = p
-    water_level, valve_position, delta_valve_position, outflow_rate = u
+    water_level, valve_position, delta_valve_position, disturbance_level, inflow_rate, wanted_valve_position = u
+        
+    inflow_rate = max(p.valve_fill_rate(valve_position), 0.0)
     
-    u[4] = outflow_rate = calc_outflow_rate(p.line, u[1])
-    
-    max_inflow_rate = p.tank_height/p.filling_time
-    valve_position = clamp(valve_position, 0.0, 1.0)
-    inflow_rate = max_inflow_rate * valve_position
-    
-    disturbance = 0
-    if p.Tf/3 < t < 2*p.Tf/3
-        disturbance = p.tank_height / p.valve_emptying_time
-    elseif 2*p.Tf/3 < t < p.Tf
-        disturbance = 2 * p.tank_height / p.valve_emptying_time
+    disturbance = 0.0
+    if 0 < t < p.Tf/4
+        disturbance = disturbance_to_rate(p.disturbance2, u[1])
+    elseif p.Tf/4 < t < 2*p.Tf/4
+        disturbance = disturbance_to_rate(p.disturbance3, u[1])
+    elseif 2*p.Tf/4 < t < 3*p.Tf/4
+        disturbance = disturbance_to_rate(p.disturbance1, u[1])
+    elseif 3*p.Tf/4 < t < p.Tf
+        disturbance = disturbance_to_rate(p.bigdisturbance, u[1])
     end
+
     # disturbance += rand() * 0.0001
-    du[1] = delta_water_level = inflow_rate - outflow_rate - disturbance # Water level equation
+    du[1] = delta_water_level = inflow_rate + disturbance # Water level equation
     # du[2] = delta_valve_position = 0.0 # Placeholder for valve position update, will be updated by callback
-    du[2] = delta_valve_position = delta_valve_position
+
+    if p.control_method == "speed"
+        du[2] = delta_valve_position = delta_valve_position
+    elseif p.control_method == "position"
+        if wanted_valve_position < valve_position
+            du[2] = -p.opening_speed
+        elseif wanted_valve_position > valve_position
+            du[2] = p.opening_speed
+        else
+            du[2] = 0.0
+        end
+    end
+
     du[3] = accel_valve_position = 0.0
+    u[4] = disturbance
+    u[5] = inflow_rate
+    u[2] = clamp(valve_position, 0.0, 1.0)
+    du[6] = 0.0
 end
 
 function pid_callback(integrator)
     u = integrator.u
     p = integrator.p
     water_level = u[1] # Current water level
-    delta_valve_position = clamp(p.pid(p.desired_water_level, water_level), -p.opening_speed, p.opening_speed) # Update valve position using PID controller
-    u[3] = delta_valve_position # Update valve position in the integrator's state
+    if p.control_method == "speed"
+        delta_valve_position = clamp(p.pid(p.desired_water_level, water_level), -p.opening_speed, p.opening_speed)
+        u[3] = delta_valve_position # Update valve speed in the integrator's state
+        return u[3]
+    else p.control_method == "position"
+        wanted_valve_position = clamp(p.pid(p.desired_water_level, water_level), 0, 1) # Update valve position using PID controller
+        u[6] = wanted_valve_position # Update valve position in the integrator's state
+        return u[6]
+    end
 end
 
 function simulate(pid_params)
@@ -55,21 +71,23 @@ function simulate(pid_params)
     Tf = 200.0   # Simulation time
     Ts = 0.1     # Sample time
     
-    initial_conditions = [0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
+    disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate = get_polynomials()
+
+    initial_conditions = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
     p = (
         tank_height = 0.63,
-        valve_emptying_time = 100, # amount of time to empty the tank with one open valve
-        filling_time = 20, # one minute to fully fill the tank with open valve and max inflow rate
-        empty_upper_halve_time = 50, # 15 seconds to empty half of the tank
-        empty_lower_halve_time = 55,
+        disturbance1 = disturbance1,
+        disturbance2 = disturbance2,
+        disturbance3 = disturbance3,
+        bigdisturbance = bigdisturbance,
+        frequency_fill_rate = frequency_fill_rate,
+        valve_fill_rate = valve_fill_rate,
         opening_speed = 1/15, # 1 / amount of seconds to open the valve completely
-        desired_water_level = 0.315, # desired height
+        desired_water_level = desired_water_level, # desired height
+        control_method = control_method, # Control position or speed
         pid = DiscretePID(; K, Ts, Ti, Td),
         Tf = Tf,
     )
-
-    line = calc_outflow_line(p)
-    p = (p..., line=line)
 
     cb = PeriodicCallback(pid_callback, Ts)
     tspan = (0.0, Tf)
@@ -86,28 +104,41 @@ function simulate(pid_params)
             break
         end
     end
-    # println(time_reached_level, "\t", abs(max_level - p.desired_water_level), "\t", pid_params)
-    # if max_level > p.desired_water_level * 1.01
-    #     cost = time_reached_level * 1000
-    # else
-    #     cost = time_reached_level
-    # end
-    cost = max(abs(max_level - p.desired_water_level), 0.10*p.desired_water_level) * time_reached_level
-    println(time_reached_level)
-    display(plot(sol, title="Water Reservoir with Valve", xlabel="Time", ylabel="Water Level"))
+    
+    cost = max(abs(max_level - p.desired_water_level), 0.0*p.desired_water_level) * time_reached_level
+    # println(time_reached_level)
+    # println(pid_params, " -> ", cost)
 
-    # p = plot(sol.t, [u ./ maximum(sol.u, dims=1) for u in sol.u], title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Max outflow rate")
-    # savefig(p, "Valve simulation.png")
+    # maxes = [maximum(abs.([u[i] for u in sol.u])) for i in 1:length(sol.u[1])]
+    # plot_u = [[u[i] / maxes[i] for u in sol.u] for i in 1:length(sol.u[1])]
+    # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
+
+    p = plot(sol, title="Water Reservoir", xlabel="Time", ylabel="Water level")
+    display(p)
+    # savefig(p, "Realistic sim - position method.png")
     return cost
 end
 
-# simulate([100.15373308782321, 581.0078385651256, 21.137621880761632])
+# simulate([1.15373308782321, 581.0078385651256, 21.137621880761632])
 
 lower = [0, 0, 0]
 upper = [Inf, Inf, Inf]
-initial_pid_params = [150.54558899817698, 523.2017234966673, 8.77637495098878]
+initial_pid_params = [5.050970853758569, 60.74808584643459, 1.0497595666451431]
 
-results = optimize(simulate, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=10.0))
+# i = 100
+# minimum_cost = 1000000.0
+# while minimum_cost > 20.0
+#     local initial_pid_params = [float(i), 0.0, 0.0]
+#     local results = optimize(simulate, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=10.0))
+#     global minimum_cost = Optim.minimum(results)
+#     println(summary(results))
+#     println(Optim.iterations(results))
+#     println(Optim.minimizer(results))
+#     println(Optim.minimum(results))
+#     global i += 10
+# end
+
+results = optimize(simulate, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=50.0))
 println(summary(results))
 println(Optim.minimizer(results))
 println(Optim.minimum(results))
