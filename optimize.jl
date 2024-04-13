@@ -5,10 +5,11 @@ Tf = 40.0
 Ts = 0.1
 desired_water_level = 0.315
 start_water_level = 0.315
-control_method = "speed"
+control_method = "position"
 test_type = "no-disturbance"
+delay = 0.2
 
-function plot_sim(sol, save=false)
+function plot_sim(sol)
     
     # maxes = [maximum(abs.([u[i] for u in sol.u])) for i in 1:length(sol.u[1])]
     # plot_u = [[u[i] / maxes[i] for u in sol.u] for i in 1:length(sol.u[1])]
@@ -16,13 +17,11 @@ function plot_sim(sol, save=false)
     
     p = plot(sol, title="Water Reservoir", xlabel="Time", ylabel="Water level")
     display(p)
-    if save
-        savefig(p, "Realistic sim - position method.png")
-    end
+    # savefig(p, "Realistic sim - with time delay.png")
 end
 
 function objective(pid_params, print=false)
-    sol, p = simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_type)
+    sol, p = simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_type, delay)
     max_level = maximum([u[1] for u in sol.u])
     time_reached_level = Tf*2
     for (t, u) in zip(sol.t, sol.u)
@@ -75,4 +74,5 @@ function optimize()
     objective(Optim.minimizer(results), true)
 end
 
-optimize()
+# optimize()
+objective([5.4031693504613525, 43.45363500025758, 1.4464488024488569], true)
