@@ -15,9 +15,9 @@ function plot_sim(sol, title="Water Reservoir")
     # plot_u = [[u[i] / maxes[i] for u in sol.u] for i in 1:length(sol.u[1])]
     # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
     
-    p = plot(sol, title="Water Reservoir", xlabel="Time", ylabel="Water level")
+    p = plot(sol, title=title, xlabel="Time", ylabel="Water level")
     display(p)
-    savefig(p, "Realistic sim - with time delay.png")
+    # savefig(p, "Realistic sim - $title.png")
 end
 
 function objective(pid_params, print=false)
@@ -38,8 +38,9 @@ function objective(pid_params, print=false)
         time_cost = time_reached_level / (Tf*2)
         stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
         stable_deviation_cost = abs(sol.u[end][1] - p.desired_water_level) / p.desired_water_level
-        cost += overswing_cost + time_cost + stable_deviation_cost
+        cost += overswing_cost*10 + time_cost + stable_deviation_cost*10
 
+        # plot_sim(sol)
         if print
             plot_sim(sol, test_type)
             println("Objective summary:")
@@ -50,6 +51,9 @@ function objective(pid_params, print=false)
             println("\t Stable deviation percentage: ", (stable_deviation)/p.desired_water_level*100, "%")
             println("\t Time to reach level: ", time_reached_level)
             println("\t Pid params: ", pid_params)
+            println("\t Overswing cost: ", overswing_cost)
+            println("\t Time cost: ", time_cost)
+            println("\t Stable deviation cost: ", stable_deviation_cost)
             println("\t Cost: ", cost)
         end
     end
@@ -60,7 +64,7 @@ end
 function optimize()
     lower = [0, 0, 0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [5.050970853758569, 60.74808584643459, 1.0497595666451431]
+    initial_pid_params = [4.995411155955291, 35.74341875205992, 5.277112932777497]
 
     # i = 100
     # minimum_cost = 1000000.0
@@ -75,7 +79,7 @@ function optimize()
     #     global i += 10
     # end
 
-    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=120.0))
+    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=10.0))
     println(summary(results))
     # println(Optim.minimizer(results))
     # println(Optim.minimum(results))

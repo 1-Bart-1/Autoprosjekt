@@ -1,0 +1,51 @@
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.31512123763501665
+         Desired level: 0.315
+         Overswing percentage: 0.03848813810052274%
+         Stable deviation percentage: 0.036178920399250226%
+         Time to reach level: 20.6
+         Pid params: [3.6499227576324724, 16.667086294208556, 11.242989655536682]
+         Overswing cost: 0.01
+         Time cost: 0.2575
+         Stable deviation cost: 0.00036178920399250225
+         Cost: 0.36111789203992506
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in ""
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.3148242502044933
+         Desired level: 0.315
+         Overswing percentage: -0.05579358587514885%
+         Stable deviation percentage: 0.05579358587514885%
+         Time to reach level: 23.7
+         Pid params: [3.6499227576324724, 16.667086294208556, 11.242989655536682]
+         Overswing cost: 0.01
+         Time cost: 0.29625
+         Stable deviation cost: 0.0005579358587514885
+         Cost: 0.76294725062744
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in ""
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.31415451873976685
+         Desired level: 0.315
+         Overswing percentage: -0.26840674928036495%
+         Stable deviation percentage: 0.26840674928036495%
+         Time to reach level: 27.4
+         Pid params: [3.6499227576324724, 16.667086294208556, 11.242989655536682]
+         Overswing cost: 0.01
+         Time cost: 0.34249999999999997
+         Stable deviation cost: 0.0026840674928036495
+         Cost: 1.2322879255554764
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in ""
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.3181291567210287
+         Desired level: 0.315
+         Overswing percentage: 0.993383086040858%
+         Stable deviation percentage: 0.993383086040858%
+         Time to reach level: 11.8
+         Pid params: [3.6499227576324724, 16.667086294208556, 11.242989655536682]
+         Overswing cost: 0.01
+         Time cost: 0.14750000000000002
+         Stable deviation cost: 0.00993383086040858
+         Cost: 1.5791262341595622
