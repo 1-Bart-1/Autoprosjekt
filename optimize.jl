@@ -6,8 +6,8 @@ Ts = 0.1
 desired_water_level = 0.315
 start_water_level = 0.315
 control_method = "position"
-test_type = "no-disturbance"
-delay = 0.2
+test_types = ["disturbance1", "disturbance2", "disturbance3", "no-disturbance"]
+delay = 0.05
 
 function plot_sim(sol)
     
@@ -21,7 +21,14 @@ function plot_sim(sol)
 end
 
 function objective(pid_params, print=false)
-    sol, p = simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_type, delay)
+    sol = []
+    p = []
+    for test_type in test_types
+        sol_i, p_i = simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_type, delay)
+        push!(sol, sol_i)
+        push!(p, p_i)
+    end
+
     max_level = maximum([u[1] for u in sol.u])
     time_reached_level = Tf*2
     for (t, u) in zip(sol.t, sol.u)
@@ -31,15 +38,19 @@ function objective(pid_params, print=false)
         end
     end
     
+    overswing_cost = max(abs(max_level - p.desired_water_level), 0.01*p.desired_water_level) / p.desired_water_level
+    time_cost = time_reached_level / (Tf*2)
+    stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
+    stable_deviation_cost = abs(sol.u[end][1] - p.desired_water_level) / p.desired_water_level
+    cost = overswing_cost + time_cost + stable_deviation_cost
+    
     plot_sim(sol)
-    
-    cost = max(abs(max_level - p.desired_water_level), 0.01*p.desired_water_level) * time_reached_level
-    
     if print
         println("Objective summary:")
         println("\t Max level: ", max_level)
         println("\t Desired level: ", p.desired_water_level)
         println("\t Overswing percentage: ", (max_level-p.desired_water_level)/p.desired_water_level*100, "%")
+        println("\t Stable deviation percentage: ", (stable_deviation)/p.desired_water_level*100, "%")
         println("\t Time to reach level: ", time_reached_level)
         println("\t Pid params: ", pid_params)
         println("\t Cost: ", cost)
@@ -74,5 +85,4 @@ function optimize()
     objective(Optim.minimizer(results), true)
 end
 
-# optimize()
-objective([5.4031693504613525, 43.45363500025758, 1.4464488024488569], true)
+objective([4.137311137212751, 10.74262363380598, 3.088050317422888], true)

@@ -1,9 +1,12 @@
 using Plots
-using DiscretePIDs, ControlSystemsBase, DelayDiffEq, DiffEqCallbacks
+using ControlSystemsBase, DelayDiffEq, DiffEqCallbacks
 using Optim
 using Polynomials
 
 include("process_data.jl")
+include("pid.jl")
+
+using .PID
 
 disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate = get_polynomials()
 
@@ -57,7 +60,7 @@ function pid_callback(integrator)
     p = integrator.p
     water_level = u[1] # Current water level
     if p.control_method == "position"
-        wanted_valve_position = clamp(p.pid(p.desired_water_level, water_level), 0, 1) # Update valve position using PID controller
+        wanted_valve_position = PID.pid(p.desired_water_level, water_level) # Update valve position using PID controller
         u[5] = wanted_valve_position # Update valve position in the integrator's state
         return u[5]
     elseif p.control_method == "none"
@@ -67,6 +70,9 @@ end
 
 function simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_type, delay)
     K, Ti, Td = max.(pid_params, [0.,0.,0.])
+
+    PID.reset()
+    PID.set_parameters(K, Ti, Td)
 
     initial_conditions = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
     p = (
@@ -82,7 +88,6 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_
         control_method = control_method, # Control position or speed
         test_type = test_type,
         delay = delay,
-        pid = DiscretePID(; K, Ts, Ti, Td),
         Tf = Tf,
     )
     h(p, t) = initial_conditions
