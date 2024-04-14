@@ -8,7 +8,7 @@ include("pid.jl")
 
 using .PID
 
-disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate = get_polynomials()
+disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate = get_polynomials()
 
 # Define the water reservoir ODE function
 function water_reservoir_ode(du, u, h, p, t)
@@ -16,7 +16,13 @@ function water_reservoir_ode(du, u, h, p, t)
     water_level, valve_position, disturbance_level, inflow_rate, wanted_valve_position, delayed_valve_position = u
     
     delayed_valve_position = h(p, t-p.delay)[2]
-    inflow_rate = max(p.valve_fill_rate(delayed_valve_position), 0.0)
+    if p.control_method == "valve"
+        inflow_rate = max(p.valve_fill_rate(delayed_valve_position), 0.0)
+    elseif p.control_method == "frequency"
+        inflow_rate = max(p.frequency_fill_rate(delayed_valve_position), 0.0)
+    else
+        inflow_rate = 0.0
+    end
     
     if p.test_type == "no-disturbance"
         disturbance_rate = 0.0
@@ -38,7 +44,7 @@ function water_reservoir_ode(du, u, h, p, t)
 
     if p.control_method == "none"
         du[2] = delta_valve_position = delta_valve_position
-    elseif p.control_method == "position"
+    else
         if wanted_valve_position < valve_position
             du[2] = delta_valve_position = -p.opening_speed
         elseif wanted_valve_position > valve_position
@@ -59,12 +65,16 @@ function pid_callback(integrator)
     u = integrator.u
     p = integrator.p
     water_level = u[1] # Current water level
-    if p.control_method == "position"
-        wanted_valve_position = PID.pid(p.desired_water_level, water_level) # Update valve position using PID controller
-        u[5] = wanted_valve_position # Update valve position in the integrator's state
-        return u[5]
-    elseif p.control_method == "none"
+    if p.control_method == "none"
         return nothing
+    elseif p.control_method == "valve"
+        wanted_valve_position = PID.pid(p.desired_water_level, water_level) # Update valve position using PID controller
+        u[5] = wanted_valve_position / 4082 # Update valve position in the integrator's state
+        return u[5]
+    elseif p. control_method == "frequency"
+        wanted_valve_position = PID.pid(p.desired_water_level, water_level) # Update valve position using PID controller
+        u[5] = wanted_valve_position / 16384 * 50 # Update valve position in the integrator's state
+        return u[5]
     end
 end
 

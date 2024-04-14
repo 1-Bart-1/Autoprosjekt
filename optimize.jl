@@ -5,7 +5,7 @@ Tf = 40.0
 Ts = 0.1
 desired_water_level = 0.315
 start_water_level = 0.315
-control_method = "position"
+control_method = "valve"
 test_types = ["disturbance1", "disturbance2", "disturbance3", "no-disturbance"]
 delay = 0.05
 
@@ -66,23 +66,8 @@ function optimize()
     upper = [Inf, Inf, Inf]
     initial_pid_params = [4.995411155955291, 35.74341875205992, 5.277112932777497]
 
-    # i = 100
-    # minimum_cost = 1000000.0
-    # while minimum_cost > 20.0
-    #     local initial_pid_params = [float(i), 0.0, 0.0]
-    #     local results = optimize(simulate, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=10.0))
-    #     global minimum_cost = Optim.minimum(results)
-    #     println(summary(results))
-    #     println(Optim.iterations(results))
-    #     println(Optim.minimizer(results))
-    #     println(Optim.minimum(results))
-    #     global i += 10
-    # end
-
     results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=10.0))
     println(summary(results))
-    # println(Optim.minimizer(results))
-    # println(Optim.minimum(results))
     objective(Optim.minimizer(results), true)
 end
 

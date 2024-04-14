@@ -1,5 +1,12 @@
 should add option for controlling valve opening speed or valve position with pid
 
+disturbance1 speed at 0.315m: 0.00442010398903692
+measurement showing: 24.0
+24/0.00442 = 5430
+
+Uff_freq = 23.3363 + 510.508 * (measured_flow_rate / 5430)
+Uff_valve = 0.238858 + 13.1348 * (measured_flow_rate / 5430)
+
 [4.466632691496241, 85.4723291594515, 1.0979373894449622]
 the best pid variables for Realistic sim - position method.png
         desired_water_level = 0.315, # desired height
