@@ -69,6 +69,7 @@ function pid_callback(integrator)
         return nothing
     elseif p.control_method == "valve"
         wanted_valve_position = PID.pid(p.desired_water_level, water_level) # Update valve position using PID controller
+        # println(wanted_valve_position)
         u[5] = wanted_valve_position / 4082 # Update valve position in the integrator's state
         return u[5]
     elseif p. control_method == "frequency"
@@ -83,8 +84,14 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_
 
     PID.reset()
     PID.set_parameters(K, Ti, Td)
-
-    initial_conditions = [0.0, 0.5, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
+    
+    if test_type == "no-disturbance"
+        start_water_level = 0.0
+    else
+        start_water_level = desired_water_level
+    end
+    
+    initial_conditions = [start_water_level, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
     p = (
         tank_height = 0.63,
         disturbance1 = disturbance1,
@@ -99,7 +106,7 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_
         test_type = test_type,
         delay = delay,
         Tf = Tf,
-    )
+        )
     h(p, t) = initial_conditions
 
     cb = PeriodicCallback(pid_callback, Ts)

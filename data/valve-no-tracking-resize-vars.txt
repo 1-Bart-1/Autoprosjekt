@@ -1,0 +1,48 @@
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.31586739513835377
+         Desired level: 0.315
+         Overswing percentage: 0.27536353598532254%
+         Stable deviation percentage: 0.1948203506864035%
+         Time to reach level: 19.4
+         Pid params: [14757.6183330091, 16.653547676182665, 4.424950168455051]
+         Overswing cost: 0.01
+         Time cost: 0.2425
+         Stable deviation cost: 0.001948203506864035
+         Cost: 0.36198203506864035
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.31499107856479736
+         Desired level: 0.315
+         Overswing percentage: -0.002832201651633894%
+         Stable deviation percentage: 0.002832201651633894%
+         Time to reach level: 23.0
+         Pid params: [14757.6183330091, 16.653547676182665, 4.424950168455051]
+         Overswing cost: 0.01
+         Time cost: 0.2875
+         Stable deviation cost: 2.832201651633894e-5
+         Cost: 0.7497652552338037
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.31434226316468716
+         Desired level: 0.315
+         Overswing percentage: -0.20880534454375835%
+         Stable deviation percentage: 0.20880534454375835%
+         Time to reach level: 26.3
+         Pid params: [14757.6183330091, 16.653547676182665, 4.424950168455051]
+         Overswing cost: 0.01
+         Time cost: 0.32875
+         Stable deviation cost: 0.0020880534454375834
+         Cost: 1.1993957896881795
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.3189403219112971
+         Desired level: 0.315
+         Overswing percentage: 1.2508958448562277%
+         Stable deviation percentage: 1.2508958448562277%
+         Time to reach level: 11.8
+         Pid params: [14757.6183330091, 16.653547676182665, 4.424950168455051]
+         Overswing cost: 0.012508958448562278
+         Time cost: 0.14750000000000002
+         Stable deviation cost: 0.012508958448562278
+         Cost: 1.597074958659425

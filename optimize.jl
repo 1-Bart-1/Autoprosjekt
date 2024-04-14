@@ -1,13 +1,15 @@
 using Optim
 include("simulator.jl")
 
-Tf = 40.0
+Tf = 70.0
 Ts = 0.1
 desired_water_level = 0.315
-start_water_level = 0.315
 control_method = "valve"
 test_types = ["disturbance1", "disturbance2", "disturbance3", "no-disturbance"]
+# test_types = ["disturbance1"]
 delay = 0.05
+overswing_percentage = 0.1
+deviation_percentage = 0.01
 
 function plot_sim(sol, title="Water Reservoir")
     
@@ -17,7 +19,7 @@ function plot_sim(sol, title="Water Reservoir")
     
     p = plot(sol, title=title, xlabel="Time", ylabel="Water level")
     display(p)
-    # savefig(p, "Realistic sim - $title.png")
+    savefig(p, "10% fault percentage - $title.png")
 end
 
 function objective(pid_params, print=false)
@@ -28,18 +30,18 @@ function objective(pid_params, print=false)
         max_level = maximum([u[1] for u in sol.u])
         time_reached_level = Tf*2
         for (t, u) in zip(sol.t, sol.u)
-            if u[1] >= p.desired_water_level*0.99
+            if t >= 1 && u[1] >= p.desired_water_level*0.99
                 time_reached_level = t
                 break
             end
         end
         
-        overswing_cost = max(abs(max_level - p.desired_water_level), 0.01*p.desired_water_level) / p.desired_water_level
+        overswing_cost = max(abs(max_level - p.desired_water_level), overswing_percentage*p.desired_water_level) / p.desired_water_level
         time_cost = time_reached_level / (Tf*2)
         stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
-        stable_deviation_cost = abs(sol.u[end][1] - p.desired_water_level) / p.desired_water_level
+        stable_deviation_cost = max(stable_deviation, deviation_percentage*p.desired_water_level) / p.desired_water_level
         cost += overswing_cost*10 + time_cost + stable_deviation_cost*10
-
+        
         # plot_sim(sol)
         if print
             plot_sim(sol, test_type)
@@ -51,9 +53,6 @@ function objective(pid_params, print=false)
             println("\t Stable deviation percentage: ", (stable_deviation)/p.desired_water_level*100, "%")
             println("\t Time to reach level: ", time_reached_level)
             println("\t Pid params: ", pid_params)
-            println("\t Overswing cost: ", overswing_cost)
-            println("\t Time cost: ", time_cost)
-            println("\t Stable deviation cost: ", stable_deviation_cost)
             println("\t Cost: ", cost)
         end
     end
@@ -64,9 +63,9 @@ end
 function optimize()
     lower = [0, 0, 0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [4.995411155955291, 35.74341875205992, 5.277112932777497]
+    initial_pid_params = [15504.552881017757, 17.89357148908523, 143.40838751347013]
 
-    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=10.0))
+    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(), Optim.Options(time_limit=100.0))
     println(summary(results))
     objective(Optim.minimizer(results), true)
 end

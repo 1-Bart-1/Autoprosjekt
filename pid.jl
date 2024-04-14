@@ -21,7 +21,7 @@ ITerm = 0.
 lastAutoMode = false
 
 outMin = 0.
-outMax = 1.
+outMax = 4082.
 Ts = 0.1
 
 Up = 0.
@@ -57,7 +57,7 @@ function reset()
     lastAutoMode = false
 
     outMin = 0.
-    outMax = 1.
+    outMax = 4082.
     Ts = 0.1
 
     Up = 0.

@@ -1,0 +1,39 @@
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.8856437732077159%
+         Time to reach level: 58.4
+         Pid params: [15657.261924410002, 18.001174730966945, 113.8764392942087]
+         Cost: 1.4723104398743825
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in ""
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.8784508937285918%
+         Time to reach level: 58.2
+         Pid params: [15657.261924410002, 18.001174730966945, 113.8764392942087]
+         Cost: 2.9357613336029744
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in ""
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.9431511822039205%
+         Time to reach level: 59.2
+         Pid params: [15657.261924410002, 18.001174730966945, 113.8764392942087]
+         Cost: 4.472245849140228
+qt.qpa.plugin: Could not find the Qt platform plugin "wayland" in ""
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.31611085989276577
+         Desired level: 0.315
+         Overswing percentage: 0.3526539342113555%
+         Stable deviation percentage: 0.35265210515459056%
+         Time to reach level: 18.3
+         Pid params: [15657.261924410002, 18.001174730966945, 113.8764392942087]
+         Cost: 5.077397954294819
