@@ -1,3 +1,4 @@
+
 using Plots
 using ControlSystemsBase, DelayDiffEq, DiffEqCallbacks
 using Optim
@@ -9,11 +10,14 @@ include("pid.jl")
 using .PID
 
 disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate = get_polynomials()
+alg = MethodOfSteps(Tsit5())
+total_time = 0.0
+total_solves = 0
 
 # Define the water reservoir ODE function
 function water_reservoir_ode(du, u, h, p, t)
     # inflow_rate, max_outflow_rate, opening_speed, desired_water_level = p
-    water_level, valve_position, disturbance_level, inflow_rate, wanted_valve_position, delayed_valve_position = u
+    water_level, valve_position, disturbance_rate, inflow_rate, wanted_valve_position, delayed_valve_position = u
     
     delayed_valve_position = h(p, t-p.delay)[2]
     if p.control_method == "valve"
@@ -37,11 +41,11 @@ function water_reservoir_ode(du, u, h, p, t)
     else
         throw(ArgumentError("Invalid test type"))
     end
-
+    
     # disturbance += rand() * 0.0001
     du[1] = delta_water_level = inflow_rate + disturbance_rate # Water level equation
     # du[2] = delta_valve_position = 0.0 # Placeholder for valve position update, will be updated by callback
-
+    
     if p.control_method == "none"
         du[2] = delta_valve_position = delta_valve_position
     else
@@ -54,8 +58,8 @@ function water_reservoir_ode(du, u, h, p, t)
         end
     end
     u[6] = delayed_valve_position
-
-    du[3] = disturbance_rate
+    
+    u[3] = disturbance_rate
     u[4] = inflow_rate
     u[2] = clamp(valve_position, 0.0, 1.0)
     u[1] = clamp(water_level, 0.0, p.tank_height)
@@ -80,8 +84,9 @@ function pid_callback(integrator)
 end
 
 function simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_type, delay)
+    global total_time, total_solves
     K, Ti, Td = max.(pid_params, [0.,0.,0.])
-
+    
     PID.reset()
     PID.set_parameters(K, Ti, Td)
     
@@ -107,16 +112,21 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_
         delay = delay,
         Tf = Tf,
         )
-    h(p, t) = initial_conditions
 
+    h(p, t) = initial_conditions
     cb = PeriodicCallback(pid_callback, Ts)
+
     tspan = (0.0, Tf)
     # prob = ODEProblem(water_reservoir_ode, initial_conditions, tspan, p, callback=cb)
     prob = DDEProblem(water_reservoir_ode, initial_conditions, h, tspan, p, callback=cb)
 
     # Solve the problem
-    alg = MethodOfSteps(Tsit5())
-    sol = solve(prob, alg, saveat=Ts)
+    total_time += @elapsed sol = solve(prob, alg, saveat=Ts)
+    total_solves += 1
     return sol, p
 end
 
+function calc_avg_time()
+    global total_time, total_solves
+    return total_time / total_solves
+end

@@ -1,8 +1,11 @@
+
 module PID
 
 export pid, set_parameters, reset
 
 K_gain = 1.
+# K_hyper = [0.9, 1.0, 1.1]
+# mode = [0, 1, 2] # 0=manuell, 1=auto, 2=hyper
 Ti = 0.1
 Td = 0.1
 derivationFilter = 0.

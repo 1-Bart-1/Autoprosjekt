@@ -1,7 +1,9 @@
+
 using Polynomials
 using DataFrames
 using CSV
 using Plots
+using Serialization
 
 export disturbance_to_rate, get_polynomials
 
@@ -48,7 +50,13 @@ function plot_polynomials(polynomials, names, p, stop)
     # savefig("data/water_level_over_time.png")
 end
 
-function get_polynomials()
+function get_polynomials(;load=true)
+    save_file = ".polynomials.jld"
+    if load && isfile(save_file)
+        println("deserializing... ")
+        return deserialize(save_file)
+    end
+
     data = CSV.read("data/TankData.csv", DataFrame)
     p1 = plot()
     p2 = plot()
@@ -75,7 +83,10 @@ function get_polynomials()
     # xlabel!(p, "time")
     # display(p4)
 
-    return disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate
+    polynomials = (disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate)
+
+    serialize(save_file, polynomials)
+    return polynomials
 end
 
-get_polynomials();
+# get_polynomials()
