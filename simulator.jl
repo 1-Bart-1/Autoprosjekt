@@ -7,8 +7,6 @@ using Polynomials
 include("process_data.jl")
 include("pid.jl")
 
-using .PID
-
 disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate = get_polynomials()
 
 alg = MethodOfSteps(Tsit5())
@@ -71,12 +69,12 @@ function pid_callback(integrator)
     if p.control_method == "none"
         return nothing
     elseif p.control_method == "valve"
-        wanted_valve_position = PID.pid(p.desired_water_level, water_level) # Update valve position using PID controller
+        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level)) # Update valve position using PID controller
         # println(wanted_valve_position)
         u[5] = wanted_valve_position / 4082 # Update valve position in the integrator's state
         return u[5]
     elseif p. control_method == "frequency"
-        wanted_valve_position = PID.pid(p.desired_water_level, water_level) # Update valve position using PID controller
+        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level)) # Update valve position using PID controller
         u[5] = wanted_valve_position / 16384 * 50 # Update valve position in the integrator's state
         return u[5]
     end
@@ -89,9 +87,10 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
     #     push!(params, 0.0)
     # end
     # K, Ti, Td = max.(pid_params, [0.,0.,0.])
-    
-    PID.reset()
-    PID.set_parameters(pid_params, pid_method)
+    pid_params = convert(Vector{Float32}, pid_params)
+    pid = PIDState()
+    reset!(pid)
+    set_parameters!(pid, pid_params, pid_method)
     
     if test_type == "no-disturbance"
         start_water_level = 0.0
@@ -100,6 +99,7 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
     end
     
     initial_conditions = [start_water_level, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
+
     p = (
         tank_height = 0.63,
         disturbance1 = disturbance1,
@@ -108,11 +108,12 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
         bigdisturbance = bigdisturbance,
         frequency_fill_rate = frequency_fill_rate,
         valve_fill_rate = valve_fill_rate,
-        opening_speed = 1/15, # 1 / amount of seconds to open the valve completely
+        opening_speed = 1/30, # 1 / amount of seconds to open the valve completely
         desired_water_level = desired_water_level, # desired height
         control_method = control_method, # Control position or speed
         test_type = test_type,
         delay = delay,
+        pid = pid,
         Tf = Tf,
         )
 

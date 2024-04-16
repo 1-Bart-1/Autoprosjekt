@@ -9,7 +9,7 @@ test_types = ["disturbance1", "disturbance2", "disturbance3", "no-disturbance"]
 pid_methods = ["PID", "PI", "P", "PD"]
 
 control_method = "valve"
-pid_method = "PID"
+pid_method = "P"
 
 # test_types = ["disturbance1"]
 delay = 0.05
@@ -23,15 +23,15 @@ upper = []
 if pid_method == "P"
     lower = [0.0]
     upper = [Inf]
-    initial_pid_params = [13190.55037878637]
+    initial_pid_params = [10945.65901668237, 1329.748566716724]
 elseif pid_method == "PI"
     lower = [0.0, 0.0]
     upper = [Inf, Inf]
-    initial_pid_params = [15528.085470192053, 16.970539735693418]
+    initial_pid_params = [15528.677821551235, 18.449799061858812]
 elseif pid_method == "PD"
     lower = [0.0, 0.0]
     upper = [Inf, Inf]
-    initial_pid_params = [657859.3625082525, 109.33756244244023]
+    initial_pid_params = [198868.51883004338, 0.34101416033247534, 23.71259411841547]
 elseif pid_method == "PID"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
@@ -50,31 +50,36 @@ function plot_sim(sol, title="Water Reservoir")
 end
 
 function objective(pid_params, print=false)
+    global Tf
     cost = 0.0
     plots = []
-    # println(pid_params)
+    times = []
+    println(pid_params)
     for test_type in test_types
         sol, p = simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_method, test_type, delay)
+        # println(Tf)
         
         max_level = maximum([u[1] for u in sol.u])
-        time_reached_level = Tf*2
+        time_reached_level = 10000
         for (t, u) in zip(sol.t, sol.u)
             if t >= 1 && u[1] >= p.desired_water_level*0.99
                 time_reached_level = t
                 break
             end
         end
+
+        push!(times, time_reached_level)
         
         overswing = max_level - p.desired_water_level
         overswing_cost = max(overswing, overswing_percentage*p.desired_water_level) / p.desired_water_level
 
-        time_cost = time_reached_level / (Tf*2)
+        time_cost = time_reached_level
 
         stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
         stable_deviation_cost = max(stable_deviation, deviation_percentage*p.desired_water_level) / p.desired_water_level
 
         # if test_type != "no-disturbance"
-        cost += overswing_cost*10 + time_cost + stable_deviation_cost*10
+        cost += overswing_cost*10 + time_cost / 100 + stable_deviation_cost*10
         # end
         # plot_sim(sol)
         if print
@@ -91,10 +96,12 @@ function objective(pid_params, print=false)
         end
     end
 
+    Tf = min(max(times...) * 2, 200)
+
     if print
         p = plot(plots..., layout=(length(test_types), 1), size=(800, 1600))
         display(p)
-        # savefig(p, "Optimal PID Controller - 0% overswing.png")
+        savefig(p, "Optimal PI Controller - bigp.png")
     end
     
     return cost
@@ -105,7 +112,7 @@ function optimize()
 
     # initial_pid_params = [15528.085470192053, 16.970539735693418, 109.33756244244023]
 
-    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(α = 10.0, β = 10.0, γ = 7.5, δ = 10.0), Optim.Options(time_limit=10.0))
+    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(α = 100.0, β = 100.0, γ = 75, δ = 100.0), Optim.Options(time_limit=100.0))
     println(summary(results))
     objective(Optim.minimizer(results), true)
 end
