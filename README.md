@@ -5,8 +5,9 @@ Uff:
         measurement showing: 24.0
         24/0.00442 = 5430
 
-        Uff_freq = 23.3363 + 510.508 * (measured_flow_rate / 5430)
-        Uff_valve = 0.238858 + 13.1348 * (measured_flow_rate / 5430)
+        
+        Uff_freq = 23.3363 + 510.508 * (ft_flow_rate / 5430)
+        Uff_valve = 0.238858 + 13.1348 * (ft_flow_rate / 5430)
 
 [4.466632691496241, 85.4723291594515, 1.0979373894449622]
 the best pid variables for Realistic sim - position method.png

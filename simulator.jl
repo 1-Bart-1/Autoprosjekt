@@ -10,6 +10,7 @@ include("pid.jl")
 using .PID
 
 disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate = get_polynomials()
+
 alg = MethodOfSteps(Tsit5())
 total_time = 0.0
 total_solves = 0
@@ -46,9 +47,7 @@ function water_reservoir_ode(du, u, h, p, t)
     du[1] = delta_water_level = inflow_rate + disturbance_rate # Water level equation
     # du[2] = delta_valve_position = 0.0 # Placeholder for valve position update, will be updated by callback
     
-    if p.control_method == "none"
-        du[2] = delta_valve_position = delta_valve_position
-    else
+    if p.control_method != "none"
         if wanted_valve_position < valve_position
             du[2] = delta_valve_position = -p.opening_speed
         elseif wanted_valve_position > valve_position
@@ -83,12 +82,16 @@ function pid_callback(integrator)
     end
 end
 
-function simulate(pid_params, Tf, Ts, desired_water_level, control_method, test_type, delay)
+function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_method, test_type, delay)
     global total_time, total_solves
-    K, Ti, Td = max.(pid_params, [0.,0.,0.])
+
+    # while length(pid_params) < 3
+    #     push!(params, 0.0)
+    # end
+    # K, Ti, Td = max.(pid_params, [0.,0.,0.])
     
     PID.reset()
-    PID.set_parameters(K, Ti, Td)
+    PID.set_parameters(pid_params, pid_method)
     
     if test_type == "no-disturbance"
         start_water_level = 0.0
