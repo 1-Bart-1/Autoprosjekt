@@ -2,7 +2,7 @@ using Optim
 include("simulator.jl")
 
 Tf = 200.0
-Ts = 0.1
+Ts = 0.5
 desired_water_level = 0.315
 control_methods = ["valve", "frequency", "none"]
 test_types = ["disturbance1", "disturbance2", "disturbance3", "no-disturbance"]
@@ -16,7 +16,7 @@ delay = 0.05
 overswing_percentage = 0.00
 deviation_percentage = 0.00
 save = true
-name = "Med tracking - PID.png"
+name = "Ts - 0.5s - PID.png"
 
 initial_pid_params = []
 lower = []
@@ -51,7 +51,7 @@ function plot_sim(sol, title="Water Reservoir")
     # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
     
     p = plot(sol.t, [u[1] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
-    p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
+    # p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
     return p
 end
 

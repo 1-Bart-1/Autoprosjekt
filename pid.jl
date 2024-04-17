@@ -57,7 +57,7 @@ function PIDState()
     lastMode = false
     outMin = 0.
     outMax = 4082.
-    Ts = 0.1
+    Ts = 0.5
     Up = 0.
     Ui = [0., 0.]
     Ud = [0., 0.]

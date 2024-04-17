@@ -72,11 +72,11 @@ function pid_callback(integrator)
     if p.control_method == "none"
         return nothing
     elseif p.control_method == "valve"
-        if integrator.t > 100.0
-            change_mode!(p.pid, true)
-        else
-            change_mode!(p.pid, false)
-        end
+        # if integrator.t > 100.0
+        #     change_mode!(p.pid, true)
+        # else
+        #     change_mode!(p.pid, false)
+        # end
         wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level), Float32(outflow_rate)) # Update valve position using PID controller
         # println(wanted_valve_position)
         u[5] = wanted_valve_position / 4082 # Update valve position in the integrator's state

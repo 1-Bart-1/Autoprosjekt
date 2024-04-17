@@ -1,0 +1,230 @@
+Optimal PID Controller - 0% overswing
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.3157948712904644
+         Desired level: 0.315
+         Overswing percentage: 0.25234009221092224%
+         Stable deviation percentage: 0.03089723296208852%
+         Time to reach level: 10.1
+         Pid params: [388012.2991779656, 0.019094589186433322, 6.104867942007374]
+         Cost: 0.053573732517301076
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.31576635077514426
+         Desired level: 0.315
+         Overswing percentage: 0.243285960363255%
+         Stable deviation percentage: 0.009226458624501437%
+         Time to reach level: 12.7
+         Pid params: [388012.2991779656, 0.019094589186433322, 6.104867942007374]
+         Cost: 0.11057497441607672
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.3157943958527318
+         Desired level: 0.315
+         Overswing percentage: 0.25218915959738963%
+         Stable deviation percentage: 0.05190420522456959%
+         Time to reach level: 14.1
+         Pid params: [388012.2991779656, 0.019094589186433322, 6.104867942007374]
+         Cost: 0.17623431089827263
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.31536812727237096
+         Desired level: 0.315
+         Overswing percentage: 0.11686580075268413%
+         Stable deviation percentage: 0.11686580075268413%
+         Time to reach level: 28.4
+         Pid params: [388012.2991779656, 0.019094589186433322, 6.104867942007374]
+         Cost: 0.27060747104880944
+
+Optimal PID Controller - 1% overswing
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.31812547955659026
+         Desired level: 0.315
+         Overswing percentage: 0.9922157322508763%
+         Stable deviation percentage: 0.054678833238335715%
+         Time to reach level: 8.1
+         Pid params: [249663.49837422615, 0.42418413254495346, 4.254416903122844]
+         Cost: 0.12493945654892122
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.3177487227708607
+         Desired level: 0.315
+         Overswing percentage: 0.872610403447838%
+         Stable deviation percentage: 0.0005117018139369886%
+         Time to reach level: 10.0
+         Pid params: [249663.49837422615, 0.42418413254495346, 4.254416903122844]
+         Cost: 0.2372516670750987
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.31786191787112195
+         Desired level: 0.315
+         Overswing percentage: 0.9085453559117282%
+         Stable deviation percentage: 0.032819597696945355%
+         Time to reach level: 11.1
+         Pid params: [249663.49837422615, 0.42418413254495346, 4.254416903122844]
+         Cost: 0.3591381624359661
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.31814396120824845
+         Desired level: 0.315
+         Overswing percentage: 0.9980829232534751%
+         Stable deviation percentage: 0.9980829232534751%
+         Time to reach level: 18.4
+         Pid params: [249663.49837422615, 0.42418413254495346, 4.254416903122844]
+         Cost: 0.6047547470866611
+
+Optimal PI Controller - 0% overswing
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.013999109859390532%
+         Time to reach level: 60.0
+         Pid params: [15528.677821551235, 18.449799061858812]
+         Cost: 0.601399910985939
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.01598205452611194%
+         Time to reach level: 59.9
+         Pid params: [15528.677821551235, 18.449799061858812]
+         Cost: 1.2019981164385503
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.015473003021864478%
+         Time to reach level: 60.9
+         Pid params: [15528.677821551235, 18.449799061858812]
+         Cost: 1.8125454167407367
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.3156782198173876
+         Desired level: 0.315
+         Overswing percentage: 0.2153078785357403%
+         Stable deviation percentage: 0.2153078785357403%
+         Time to reach level: 18.4
+         Pid params: [15528.677821551235, 18.449799061858812]
+         Cost: 2.039606992447885
+
+
+Optimal PD Controller - 0% overswing
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.2890648562315683%
+         Time to reach level: 13.1
+         Pid params: [1.3369804289100226e6, 4.0780854559396476, 12.490265636723835]
+         Cost: 0.15990648562315685
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.24004179283948227%
+         Time to reach level: 15.6
+         Pid params: [1.3369804289100226e6, 4.0780854559396476, 12.490265636723835]
+         Cost: 0.3399106649071051
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.35452975177489215%
+         Time to reach level: 16.7
+         Pid params: [1.3369804289100226e6, 4.0780854559396476, 12.490265636723835]
+         Cost: 0.5423636400845943
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.3155362448816097
+         Desired level: 0.315
+         Overswing percentage: 0.17023647035228356%
+         Stable deviation percentage: 0.17023647035228356%
+         Time to reach level: 18.4
+         Pid params: [1.3369804289100226e6, 4.0780854559396476, 12.490265636723835]
+         Cost: 0.7604109341550509
+
+
+Optimal P Controller - 0% overswing
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.32866382347100176
+         Desired level: 0.315
+         Overswing percentage: 4.337721736825954%
+         Stable deviation percentage: 4.334090869790494%
+         Time to reach level: 8.0
+         Pid params: [10945.65901668237, 1329.748566716724]
+         Cost: 0.9471812606616448
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.3187092290343718
+         Desired level: 0.315
+         Overswing percentage: 1.1775330267847046%
+         Stable deviation percentage: 1.1762414812600663%
+         Time to reach level: 12.5
+         Pid params: [10945.65901668237, 1329.748566716724]
+         Cost: 1.3075587114661218
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.315
+         Desired level: 0.315
+         Overswing percentage: 0.0%
+         Stable deviation percentage: 0.9811469995178537%
+         Time to reach level: 34.7
+         Pid params: [10945.65901668237, 1329.748566716724]
+         Cost: 1.7526734114179072
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.3514026701913405
+         Desired level: 0.315
+         Overswing percentage: 11.556403235346197%
+         Stable deviation percentage: 11.556403235346197%
+         Time to reach level: 18.3
+         Pid params: [10945.65901668237, 1329.748566716724]
+         Cost: 4.246954058487147
+
+
+Optimal LL Controller - with PID
+Objective summary:
+         Test type: disturbance1
+         Max level: 0.3156746767064847
+         Desired level: 0.315
+         Overswing percentage: 0.21418308142371087%
+         Stable deviation percentage: 0.05461296620507953%
+         Time to reach level: 18.4
+         Pid params: [1191.6724394147234, 1378.010059442158, 939.8689643347051]
+         Cost: 0.21087960476287904
+Objective summary:
+         Test type: disturbance2
+         Max level: 0.3155001760456064
+         Desired level: 0.315
+         Overswing percentage: 0.15878604622424472%
+         Stable deviation percentage: 0.002518725930256678%
+         Time to reach level: 21.9
+         Pid params: [1191.6724394147234, 1378.010059442158, 939.8689643347051]
+         Cost: 0.44601008197832914
+Objective summary:
+         Test type: disturbance3
+         Max level: 0.3154089617299223
+         Desired level: 0.315
+         Overswing percentage: 0.12982912061024596%
+         Stable deviation percentage: 0.022440039903578794%
+         Time to reach level: 23.9
+         Pid params: [1191.6724394147234, 1378.010059442158, 939.8689643347051]
+         Cost: 0.7002369980297116
+Objective summary:
+         Test type: no-disturbance
+         Max level: 0.31571036681057935
+         Desired level: 0.315
+         Overswing percentage: 0.22551327319979167%
+         Stable deviation percentage: 0.22551327319979167%
+         Time to reach level: 28.3
+         Pid params: [1191.6724394147234, 1378.010059442158, 939.8689643347051]
+         Cost: 1.02833965266967
