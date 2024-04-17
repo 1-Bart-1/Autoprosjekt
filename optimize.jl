@@ -15,8 +15,8 @@ pid_method = "PID"
 delay = 0.05
 overswing_percentage = 0.00
 deviation_percentage = 0.00
-save = true
-name = "Med tracking - PID.png"
+save = false
+name = "Optimizing - PID.png"
 
 initial_pid_params = []
 lower = []
@@ -37,7 +37,7 @@ elseif pid_method == "PD"
 elseif pid_method == "PID"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [410163.3859666207, 0.03598674140068368, 6.032244476391085]
+    initial_pid_params = [310163.3859666207, 1.03598674140068368, 10.032244476391085]
 elseif pid_method == "LL"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
@@ -51,7 +51,6 @@ function plot_sim(sol, title="Water Reservoir")
     # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
     
     p = plot(sol.t, [u[1] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
-    p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
     return p
 end
 
@@ -88,30 +87,15 @@ function objective(pid_params, print=false)
         cost += overswing_cost*10 + time_cost / 100 + stable_deviation_cost*10
         # end
         # plot_sim(sol)
-        if print
-            push!(plots, plot_sim(sol, test_type))
-            println("Objective summary:")
-            println("\t Test type: ", test_type)
-            println("\t Max level: ", max_level)
-            println("\t Desired level: ", p.desired_water_level)
-            println("\t Overswing percentage: ", overswing/p.desired_water_level*100, "%")
-            println("\t Stable deviation percentage: ", (stable_deviation)/p.desired_water_level*100, "%")
-            println("\t Time to reach level: ", time_reached_level)
-            println("\t Pid params: ", pid_params)
-            println("\t Cost: ", cost)
-        end
+        push!(plots, plot_sim(sol, test_type))
     end
 
     Tf = min(max(times...) * 2, 200)
 
-    if print
-        p = plot(plots..., layout=(length(test_types), 1), size=(800, 1600))
-        display(p)
-        if save
-            savefig(p, name)
-        end
-    end
-    println(cost)
+    p = plot(plots..., layout=(length(test_types), 1), size=(800, 1600))
+    display(p)
+
+    # println(cost)
     return cost
 end
 
@@ -126,7 +110,7 @@ function optimize()
 end
 
 println("optimizing...")
-# optimize()
-objective(initial_pid_params, true)
+optimize()
+# objective(initial_pid_params, true)
 println("avg sol time:")
 calc_avg_time()
