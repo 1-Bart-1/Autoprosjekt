@@ -30,12 +30,18 @@ mutable struct PIDState
     gamma::Float32
     output::Float32
     Usat::Float32
+    Tau_lead::Float32
+    Tau_lag::Float32
+    FF_Mode::Int
+    internal::Vector{Float32}
+    Kf::Float32
+    UserInput::Float32
 end
 
 function PIDState()
-    K_gain = 1.
-    Ti = 0.1
-    Td = 0.1
+    K_gain = 410163.3859666207
+    Ti = 0.03598674140068368
+    Td = 6.032244476391085
     derivationFilter = 10.
     mode_Tracking = false
     Uff = 0.
@@ -56,51 +62,30 @@ function PIDState()
     Ui = [0., 0.]
     Ud = [0., 0.]
     Beta = 0.
-    Tt = 0.
+    Tt = 0.0001
     Alpha = 0.
     Sigma = 0.
     gamma = 0.
     output = 0.
     Usat = 0.
+    Tau_lead = 0.
+    Tau_lag = 0.
+    FF_Mode = 0
+    internal = [0., 0.]
+    Kf = 0.0
+    UserInput = 0.3*4082.0
 
     return PIDState(
-        K_gain, Ti, Td, derivationFilter, mode_Tracking, Uff, Uman, Unom, outputSat, Error, lastError, dInput, lastInput, autoMode, ITerm, lastMode, outMin, outMax, Ts, Up, Ui, Ud, Beta, Tt, Alpha, Sigma, gamma, output, Usat
+        K_gain, Ti, Td, derivationFilter, mode_Tracking, Uff, Uman, Unom, outputSat, Error, lastError, dInput, lastInput, autoMode, ITerm, lastMode, outMin, outMax, Ts, Up, Ui, Ud, Beta, Tt, Alpha, Sigma, gamma, output, Usat, Tau_lead, Tau_lag, FF_Mode, internal, Kf, UserInput
     )
 end
 
-function reset!(state::PIDState)
-    state.K_gain = 1.
-    state.Ti = 0.1
-    state.Td = 0.1
-    state.derivationFilter = 10.
-    state.mode_Tracking = false
-    state.Uff = 0.
-    state.Uman = 0.
-    state.outputSat = 0.
-    state.Error = 0.
-    state.lastError = 0.
-    state.dInput = 0.
-    state.lastInput = 0.
-    state.autoMode = true
-    state.ITerm = 0.
-    state.lastMode = false
-    state.outMin = 0.
-    state.outMax = 4082.
-    state.Ts = 0.1
-    state.Up = 0.
-    state.Ui = [0., 0.]
-    state.Ud = [0., 0.]
-    state.Beta = 0.
-    state.Tt = 0.
-    state.Alpha = 0.
-    state.Sigma = 0.
-    state.gamma = 0.
-    state.output = 0.
-    state.Usat = 0.
-end
 
 function set_parameters!(state::PIDState, pid_params::Vector{Float32}, pid_method::String)
-    if pid_method == "P"
+    state.autoMode = true
+    if pid_method == "none"
+        state.autoMode = false
+    elseif pid_method == "P"
         state.K_gain = pid_params[1]
         state.Ti = 0
         state.Td = 0
@@ -120,23 +105,28 @@ function set_parameters!(state::PIDState, pid_params::Vector{Float32}, pid_metho
         state.Ti = pid_params[2]
         state.Td = pid_params[3]
         state.Unom = 0.0
+    elseif pid_method == "LL"
+        # state.K_gain = pid_params[1]
+        # state.Ti = pid_params[2]
+        # state.Td = pid_params[3]
+        state.Tau_lead = pid_params[1]
+        state.Tau_lag = pid_params[2]
+        state.Kf = pid_params[3]
+        state.FF_Mode = 1
+    end
+end
+
+function change_mode!(state::PIDState, mode::Bool)
+    if mode
+        state.autoMode = true
+    else
+        state.autoMode = false
     end
 end
 
 
-# function lead_lag()
-#     if FF_Mode == 1
-#         internal[2] = (1.0f0 - Ts / tau_lag)*internal[1] + (Ts / tau_lag) * flowRate
-#         Uff = (1.0f0 - (tau_lead / tau_lag))*internal[1] + (tau_lead / tau_lag)*flowRate
-#         internal[1] = internal[2]
-#     else
-#         Uff = 0.0f0
-#     end
-#     return Uff
-# end
 
-
-function pid(state::PIDState, Setpoint::Float32, Input::Float32)
+function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float32)
     if state.autoMode && !state.lastMode
         state.lastInput = Input
         state.Ui[1] = state.outputSat
@@ -178,13 +168,22 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32)
             state.Ud[2] = 0.0
         end
 
-        # println(state.K_gain)
+        # lead_lag
+        if state.FF_Mode == 1
+            state.internal[2] = (1.0f0 - state.Ts / state.Tau_lag)*state.internal[1] + (state.Ts / state.Tau_lag)*FlowRate
+            state.Uff = state.Kf * (1.0f0 - (state.Tau_lead / state.Tau_lag))*state.internal[1] + state.Kf * (state.Tau_lead / state.Tau_lag)*FlowRate
+            state.internal[1] = state.internal[2]
+            # println("flowrate", FlowRate)
+            # println("Uff", state.Uff)
+        else
+            state.Uff = 0.0f0
+        end
+        
         state.output = Up + state.Ui[2] + state.Ud[2] + state.Unom + state.Uff
-        # println("Output: ", state.output)
     end
 
     if !state.autoMode
-        state.Uman = state.userInput
+        state.Uman = state.UserInput
         state.output = state.Uman
     end
 

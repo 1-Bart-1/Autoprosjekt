@@ -66,15 +66,23 @@ function pid_callback(integrator)
     u = integrator.u
     p = integrator.p
     water_level = u[1] # Current water level
+    outflow_rate = -u[3]
+    # println("outflow rate: ", outflow_rate)
+    # println("time: ", integrator.t)
     if p.control_method == "none"
         return nothing
     elseif p.control_method == "valve"
-        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level)) # Update valve position using PID controller
+        if integrator.t > 100.0
+            change_mode!(p.pid, true)
+        else
+            change_mode!(p.pid, false)
+        end
+        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level), Float32(outflow_rate)) # Update valve position using PID controller
         # println(wanted_valve_position)
         u[5] = wanted_valve_position / 4082 # Update valve position in the integrator's state
         return u[5]
     elseif p. control_method == "frequency"
-        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level)) # Update valve position using PID controller
+        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level), Float32(outflow_rate)) # Update valve position using PID controller
         u[5] = wanted_valve_position / 16384 * 50 # Update valve position in the integrator's state
         return u[5]
     end
@@ -89,7 +97,6 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
     # K, Ti, Td = max.(pid_params, [0.,0.,0.])
     pid_params = convert(Vector{Float32}, pid_params)
     pid = PIDState()
-    reset!(pid)
     set_parameters!(pid, pid_params, pid_method)
     
     if test_type == "no-disturbance"

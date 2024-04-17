@@ -6,15 +6,17 @@ Ts = 0.1
 desired_water_level = 0.315
 control_methods = ["valve", "frequency", "none"]
 test_types = ["disturbance1", "disturbance2", "disturbance3", "no-disturbance"]
-pid_methods = ["PID", "PI", "P", "PD"]
+pid_methods = ["PID", "PI", "P", "PD", "LL"]
 
 control_method = "valve"
-pid_method = "P"
+pid_method = "PID"
 
 # test_types = ["disturbance1"]
 delay = 0.05
 overswing_percentage = 0.00
 deviation_percentage = 0.00
+save = true
+name = "Med tracking - PID.png"
 
 initial_pid_params = []
 lower = []
@@ -35,7 +37,11 @@ elseif pid_method == "PD"
 elseif pid_method == "PID"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [249663.49837422615, 0.42418413254495346, 4.254416903122844]
+    initial_pid_params = [410163.3859666207, 0.03598674140068368, 6.032244476391085]
+elseif pid_method == "LL"
+    lower = [0.0, 0.0, 0.0]
+    upper = [Inf, Inf, Inf]
+    initial_pid_params = [1000.0, 1000.0, 1000.0]
 end
 
 function plot_sim(sol, title="Water Reservoir")
@@ -45,8 +51,8 @@ function plot_sim(sol, title="Water Reservoir")
     # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
     
     p = plot(sol.t, [u[1] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
+    p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
     return p
-    # savefig(p, "1% fault percentage - $title.png")
 end
 
 function objective(pid_params, print=false)
@@ -101,9 +107,11 @@ function objective(pid_params, print=false)
     if print
         p = plot(plots..., layout=(length(test_types), 1), size=(800, 1600))
         display(p)
-        savefig(p, "Optimal PI Controller - bigp.png")
+        if save
+            savefig(p, name)
+        end
     end
-    
+    println(cost)
     return cost
 end
 
@@ -112,13 +120,13 @@ function optimize()
 
     # initial_pid_params = [15528.085470192053, 16.970539735693418, 109.33756244244023]
 
-    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(α = 100.0, β = 100.0, γ = 75, δ = 100.0), Optim.Options(time_limit=100.0))
+    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(α = 1.0, β = 1.0, γ = 0.75, δ = 1.0), Optim.Options(time_limit=20.0))
     println(summary(results))
     objective(Optim.minimizer(results), true)
 end
 
 println("optimizing...")
-optimize()
-# objective(initial_pid_params, true)
+# optimize()
+objective(initial_pid_params, true)
 println("avg sol time:")
 calc_avg_time()
