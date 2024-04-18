@@ -15,7 +15,7 @@ pid_method = "PID"
 delay = 0.05
 overswing_percentage = 0.00
 deviation_percentage = 0.00
-save = true
+save = false
 name = "Med tracking - PID.png"
 
 initial_pid_params = []
@@ -88,8 +88,8 @@ function objective(pid_params, print=false)
         cost += overswing_cost*10 + time_cost / 100 + stable_deviation_cost*10
         # end
         # plot_sim(sol)
+        push!(plots, plot_sim(sol, test_type))
         if print
-            push!(plots, plot_sim(sol, test_type))
             println("Objective summary:")
             println("\t Test type: ", test_type)
             println("\t Max level: ", max_level)
@@ -104,9 +104,9 @@ function objective(pid_params, print=false)
 
     Tf = min(max(times...) * 2, 200)
 
+    p = plot(plots..., layout=(length(test_types), 1), size=(800, 1600))
+    display(p)
     if print
-        p = plot(plots..., layout=(length(test_types), 1), size=(800, 1600))
-        display(p)
         if save
             savefig(p, name)
         end
@@ -126,7 +126,7 @@ function optimize()
 end
 
 println("optimizing...")
-# optimize()
-objective(initial_pid_params, true)
+optimize()
+# objective(initial_pid_params, true)
 println("avg sol time:")
 calc_avg_time()
