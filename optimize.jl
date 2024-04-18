@@ -37,7 +37,7 @@ elseif pid_method == "PD"
 elseif pid_method == "PID"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [410163.3859666207, 0.03598674140068368, 6.032244476391085]
+    initial_pid_params = [310163.3859666207, 1.03598674140068368, 10.032244476391085]
 elseif pid_method == "LL"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
@@ -51,7 +51,6 @@ function plot_sim(sol, title="Water Reservoir")
     # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
     
     p = plot(sol.t, [u[1] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
-    p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
     return p
 end
 
@@ -126,6 +125,8 @@ function optimize()
 end
 
 println("optimizing...")
+optimize()
+# objective(initial_pid_params, true)
 optimize()
 # objective(initial_pid_params, true)
 println("avg sol time:")
