@@ -14,7 +14,9 @@ mutable struct PIDState
     lastError::Float32
     dInput::Float32
     lastInput::Float32
+    lastOutput::Float32
     autoMode::Bool
+    controlMode::Bool
     ITerm::Float32
     lastMode::Bool
     outMin::Float32
@@ -24,10 +26,8 @@ mutable struct PIDState
     Ui::Vector{Float32}
     Ud::Vector{Float32}
     Beta::Float32
-    Tt::Float32
     Alpha::Float32
     Sigma::Float32
-    gamma::Float32
     output::Float32
     Usat::Float32
     Tau_lead::Float32
@@ -36,6 +36,7 @@ mutable struct PIDState
     internal::Vector{Float32}
     Kf::Float32
     UserInput::Float32
+    ValveSpeed::Float32
 end
 
 function PIDState()
@@ -43,7 +44,7 @@ function PIDState()
     Ti = 0.03598674140068368
     Td = 6.032244476391085
     derivationFilter = 10.
-    mode_Tracking = false
+    mode_Tracking = true
     Uff = 0.
     Uman = 0.
     Unom = 0.
@@ -52,20 +53,20 @@ function PIDState()
     lastError = 0.
     dInput = 0.
     lastInput = 0.
+    lastOutput = 0.
     autoMode = true
+    controlMode = false
     ITerm = 0.
     lastMode = false
     outMin = 0.
-    outMax = 4082.
-    Ts = 0.5
+    outMax = 100.
+    Ts = 0.1
     Up = 0.
     Ui = [0., 0.]
     Ud = [0., 0.]
     Beta = 0.
-    Tt = 0.0001
     Alpha = 0.
     Sigma = 0.
-    gamma = 0.
     output = 0.
     Usat = 0.
     Tau_lead = 0.
@@ -73,10 +74,11 @@ function PIDState()
     FF_Mode = 0
     internal = [0., 0.]
     Kf = 0.0
-    UserInput = 0.3*4082.0
+    UserInput = 30.0
+    ValveSpeed = 100.0/30.0
 
     return PIDState(
-        K_gain, Ti, Td, derivationFilter, mode_Tracking, Uff, Uman, Unom, outputSat, Error, lastError, dInput, lastInput, autoMode, ITerm, lastMode, outMin, outMax, Ts, Up, Ui, Ud, Beta, Tt, Alpha, Sigma, gamma, output, Usat, Tau_lead, Tau_lag, FF_Mode, internal, Kf, UserInput
+        K_gain, Ti, Td, derivationFilter, mode_Tracking, Uff, Uman, Unom, outputSat, Error, lastError, dInput, lastInput, lastOutput, autoMode, controlMode, ITerm, lastMode, outMin, outMax, Ts, Up, Ui, Ud, Beta, Alpha, Sigma, output, Usat, Tau_lead, Tau_lag, FF_Mode, internal, Kf, UserInput, ValveSpeed
     )
 end
 
@@ -90,21 +92,25 @@ function set_parameters!(state::PIDState, pid_params::Vector{Float32}, pid_metho
         state.Ti = 0
         state.Td = 0
         state.Unom = pid_params[2]
+        state.FF_Mode = 0
     elseif pid_method == "PI"
         state.K_gain = pid_params[1]
         state.Ti = pid_params[2]
         state.Td = 0
         state.Unom = 0.0
+        state.FF_Mode = 0
     elseif pid_method == "PD"
         state.K_gain = pid_params[1]
         state.Ti = 0
         state.Td = pid_params[2]
         state.Unom = pid_params[3]
+        state.FF_Mode = 0
     elseif pid_method == "PID"
         state.K_gain = pid_params[1]
         state.Ti = pid_params[2]
         state.Td = pid_params[3]
         state.Unom = 0.0
+        state.FF_Mode = 0
     elseif pid_method == "LL"
         # state.K_gain = pid_params[1]
         # state.Ti = pid_params[2]
@@ -113,6 +119,12 @@ function set_parameters!(state::PIDState, pid_params::Vector{Float32}, pid_metho
         state.Tau_lag = pid_params[2]
         state.Kf = pid_params[3]
         state.FF_Mode = 1
+    elseif pid_method == "FF"
+        state.K_gain = pid_params[1]
+        state.Ti = pid_params[2]
+        state.Td = pid_params[3]
+        state.Unom = 0.0
+        state.FF_Mode = 2
     end
 end
 
@@ -125,7 +137,11 @@ function change_mode!(state::PIDState, mode::Bool)
 end
 
 
-
+"""
+Setpoint: percentage
+Input: percentage
+FlowRate: measured value from the flow meter
+"""
 function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float32)
     if state.autoMode && !state.lastMode
         state.lastInput = Input
@@ -144,17 +160,17 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
 
         # P-leddet
         if mode_P || mode_PI || mode_PD || mode_PID
-            Error = Setpoint - Input
-            dInput = Input - state.lastInput
-            Up = state.K_gain * Error
+            state.Error = Setpoint - Input
+            state.dInput = Input - state.lastInput
+            state.Up = state.K_gain * state.Error
         end
 
         # I-leddet
         if mode_PI || mode_PID
             Alpha = state.Ts / state.Ti
-            gamma = state.mode_Tracking ? state.Ts / state.Tt : 0.0
-            state.Ui[2] = state.Ui[1] + state.K_gain * Alpha * Error + gamma * (state.outputSat - state.output)
+            state.Ui[2] = state.Ui[1] + state.K_gain * Alpha * state.Error
             state.Ui[2] = clamp(state.Ui[2], state.outMin, state.outMax)
+            state.Unom = 0.0
         else
             state.Ui[2] = 0.0
         end
@@ -163,7 +179,7 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
         if mode_PD || mode_PID
             Beta = state.Td / (state.Td + state.derivationFilter)
             Sigma = state.K_gain * (state.Td / state.Ts) * (1.0 - Beta)
-            state.Ud[2] = Beta * state.Ud[1] - Sigma * dInput
+            state.Ud[2] = Beta * state.Ud[1] - Sigma * state.dInput
         else
             state.Ud[2] = 0.0
         end
@@ -173,13 +189,37 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
             state.internal[2] = (1.0f0 - state.Ts / state.Tau_lag)*state.internal[1] + (state.Ts / state.Tau_lag)*FlowRate
             state.Uff = state.Kf * (1.0f0 - (state.Tau_lead / state.Tau_lag))*state.internal[1] + state.Kf * (state.Tau_lead / state.Tau_lag)*FlowRate
             state.internal[1] = state.internal[2]
-            # println("flowrate", FlowRate)
-            # println("Uff", state.Uff)
+        elseif state.FF_Mode == 2
+            real_rate = -0.00571194 + 1.48893e-5 * FlowRate # trenger på plsen!!
+            real_rate = FlowRate
+            # println("flowrate")
+            if state.controlMode == true
+                state.Uff = (23.3363 + 510.508 * real_rate)
+                state.Uff = state.Uff / 50. * 100. # convert from Hz to percentage
+            else
+                state.Uff = (0.238858 + 13.1348 * real_rate) # valve mode
+                state.Uff = state.Uff * 100. # convert from fraction to percentage
+            end
         else
-            state.Uff = 0.0f0
+            state.Uff = 0.0
         end
         
-        state.output = Up + state.Ui[2] + state.Ud[2] + state.Unom + state.Uff
+        # println("Up: ", state.Up, ", Ui[2]: ", state.Ui[2], ", Ud[2]: ", state.Ud[2], ", Unom: ", state.Unom, ", Uff: ", state.Uff)
+        state.output = state.Up + state.Ui[2] + state.Ud[2] + state.Unom + state.Uff
+        # state.output = state.Up + state.Uff
+
+
+        # mode_Tracking
+        if state.mode_Tracking
+            maxNewOutput = state.lastOutput + state.Ts * state.ValveSpeed
+            minNewOutput = state.lastOutput - state.Ts * state.ValveSpeed
+            if state.output > maxNewOutput
+                state.output = maxNewOutput
+            elseif state.output < minNewOutput
+                state.output = minNewOutput
+            end
+            state.lastOutput = state.output
+        end
     end
 
     if !state.autoMode
@@ -201,7 +241,7 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
     state.Ud[1] = state.Ud[2]
     state.lastInput = Input
     state.lastMode = state.autoMode
-
+    # println("output: ", state.outputSat)
     return state.outputSat
 end
 

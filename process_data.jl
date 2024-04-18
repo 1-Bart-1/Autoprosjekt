@@ -34,6 +34,18 @@ function get_fill_rate(data, column_name, p, inverse=false)
     return fill_rate
 end
 
+function get_ft_rate_to_real_rate(data, p)
+    ft_column = Symbol("flow-transmitter-rate")
+    real_column = Symbol("real-rate")
+
+    ft = collect(skipmissing(data[!, ft_column]))
+    real = collect(skipmissing(data[!, real_column]))
+
+    scatter!(p, ft, real, label="ft-to-real", markershape=:circle, markersize=2)
+    ft_rate_to_real_rate = fit(ft, real, 1)
+    return ft_rate_to_real_rate
+end
+
 function disturbance_to_rate(disturbance, level)
     time_at_level = minimum(real(roots(disturbance - level)))
     flow_rate = derivative(disturbance)
@@ -70,8 +82,12 @@ function get_polynomials(;load=true)
 
     frequency_fill_rate = get_fill_rate(data, "frequency", p2)
     valve_fill_rate = get_fill_rate(data, "valve", p3)
-    frequency_to_rate = get_fill_rate(data, "frequency", p2, true)
-    valve_to_rate = get_fill_rate(data, "valve", p3, true)
+    rate_to_frequency = get_fill_rate(data, "frequency", p2, true)
+    rate_to_valve = get_fill_rate(data, "valve", p3, true)
+
+    ft_rate_to_real_rate = get_ft_rate_to_real_rate(data, p2)
+    println(ft_rate_to_real_rate)
+    println(ft_rate_to_real_rate(600))
 
     # println("disturbance1 speed at 0.315m: ", disturbance_to_rate(disturbance1, 0.315))
 
@@ -83,7 +99,7 @@ function get_polynomials(;load=true)
     # xlabel!(p, "time")
     # display(p4)
 
-    polynomials = (disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate)
+    polynomials = (disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, rate_to_frequency, rate_to_valve)
 
     serialize(save_file, polynomials)
     return polynomials

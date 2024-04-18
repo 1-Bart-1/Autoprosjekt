@@ -4,10 +4,9 @@ Uff:
         disturbance1 speed at 0.315m: 0.00442010398903692
         measurement showing: 24.0
         24/0.00442 = 5430
-
-        
-        Uff_freq = 23.3363 + 510.508 * (ft_flow_rate / 5430)
-        Uff_valve = 0.238858 + 13.1348 * (ft_flow_rate / 5430)
+        rate = -0.00571194 + 1.48893e-5 * measured_rate
+        Uff_freq = (23.3363 + 510.508 * rate) / 0.50
+        Uff_valve = (0.238858 + 13.1348 * rate) / 40.82
 
 [4.466632691496241, 85.4723291594515, 1.0979373894449622]
 the best pid variables for Realistic sim - position method.png

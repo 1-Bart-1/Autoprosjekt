@@ -7,7 +7,7 @@ using Polynomials
 include("process_data.jl")
 include("pid.jl")
 
-disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, frequency_to_rate, valve_to_rate = get_polynomials()
+disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, rate_to_frequency, rate_to_valve = get_polynomials()
 
 alg = MethodOfSteps(Tsit5())
 total_time = 0.0
@@ -27,8 +27,8 @@ function water_reservoir_ode(du, u, h, p, t)
         inflow_rate = 0.0
     end
     
-    if p.test_type == "no-disturbance"
-        disturbance_rate = 0.0
+    if p.test_type == "nominal"
+        disturbance_rate = disturbance_to_rate(p.disturbance2, u[1])
     elseif p.test_type == "disturbance1"
         disturbance_rate = disturbance_to_rate(p.disturbance1, u[1])
     elseif p.test_type == "disturbance2"
@@ -77,9 +77,9 @@ function pid_callback(integrator)
         # else
         #     change_mode!(p.pid, false)
         # end
-        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level), Float32(outflow_rate)) # Update valve position using PID controller
+        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level/p.tank_height*100.0), Float32(water_level/p.tank_height*100.0), Float32(outflow_rate)) # Update valve position using PID controller
         # println(wanted_valve_position)
-        u[5] = wanted_valve_position / 4082 # Update valve position in the integrator's state
+        u[5] = wanted_valve_position / 100. # Update valve position in the integrator's state
         return u[5]
     elseif p. control_method == "frequency"
         wanted_valve_position = pid(p.pid, Float32(p.desired_water_level), Float32(water_level), Float32(outflow_rate)) # Update valve position using PID controller
@@ -99,7 +99,7 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
     pid = PIDState()
     set_parameters!(pid, pid_params, pid_method)
     
-    if test_type == "no-disturbance"
+    if test_type == "nominal"
         start_water_level = 0.0
     else
         start_water_level = desired_water_level

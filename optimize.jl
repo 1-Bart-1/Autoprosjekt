@@ -2,20 +2,21 @@ using Optim
 include("simulator.jl")
 
 Tf = 200.0
-Ts = 0.5
+Ts = 0.1
 desired_water_level = 0.315
 control_methods = ["valve", "frequency", "none"]
-test_types = ["disturbance1", "disturbance2", "disturbance3", "no-disturbance"]
-pid_methods = ["PID", "PI", "P", "PD", "LL"]
+test_types = ["disturbance1","disturbance2", "disturbance3", "nominal"]
+pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 
 control_method = "valve"
 pid_method = "PID"
+optimizing = false
 
 # test_types = ["disturbance1"]
 delay = 0.05
 overswing_percentage = 0.00
 deviation_percentage = 0.00
-save = true
+save = false
 name = "Ts - 0.5s - PID.png"
 
 initial_pid_params = []
@@ -25,23 +26,27 @@ upper = []
 if pid_method == "P"
     lower = [0.0]
     upper = [Inf]
-    initial_pid_params = [10945.65901668237, 1329.748566716724]
+    initial_pid_params = [37.0, 30.0]
 elseif pid_method == "PI"
     lower = [0.0, 0.0]
     upper = [Inf, Inf]
-    initial_pid_params = [15528.677821551235, 18.449799061858812]
+    initial_pid_params = [37.78129011219762, 18.449799061858812]
 elseif pid_method == "PD"
     lower = [0.0, 0.0]
     upper = [Inf, Inf]
-    initial_pid_params = [198868.51883004338, 0.34101416033247534, 23.71259411841547]
+    initial_pid_params = [37.78129011219762, 0.06200201920575654, 23.71259411841547]
 elseif pid_method == "PID"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [410163.3859666207, 0.03598674140068368, 6.032244476391085]
+    initial_pid_params = [37.78129011219762, 0.06200201920575654, 5.628083016278622]
 elseif pid_method == "LL"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [1000.0, 1000.0, 1000.0]
+    initial_pid_params = [37.78129011219762, 0.06200201920575654, 5.628083016278622]
+elseif pid_method == "FF"
+    lower = [0.0, 0.0, 0.0]
+    upper = [Inf, Inf, Inf]
+    initial_pid_params = [373.0, 10.0, 10.0]
 end
 
 function plot_sim(sol, title="Water Reservoir")
@@ -51,7 +56,7 @@ function plot_sim(sol, title="Water Reservoir")
     # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
     
     p = plot(sol.t, [u[1] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
-    # p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
+    p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
     return p
 end
 
@@ -84,10 +89,7 @@ function objective(pid_params, print=false)
         stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
         stable_deviation_cost = max(stable_deviation, deviation_percentage*p.desired_water_level) / p.desired_water_level
 
-        # if test_type != "no-disturbance"
         cost += overswing_cost*10 + time_cost / 100 + stable_deviation_cost*10
-        # end
-        # plot_sim(sol)
         if print
             push!(plots, plot_sim(sol, test_type))
             println("Objective summary:")
@@ -118,15 +120,17 @@ end
 function optimize()
     global initial_pid_params, pid_method, lower, upper
 
-    # initial_pid_params = [15528.085470192053, 16.970539735693418, 109.33756244244023]
 
-    results = Optim.optimize(objective, lower, upper, initial_pid_params, NelderMead(α = 1.0, β = 1.0, γ = 0.75, δ = 1.0), Optim.Options(time_limit=20.0))
+    results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=100.0))
     println(summary(results))
     objective(Optim.minimizer(results), true)
 end
 
-println("optimizing...")
-# optimize()
-objective(initial_pid_params, true)
-println("avg sol time:")
-calc_avg_time()
+if optimizing
+    println("optimizing...")
+    optimize()
+    println("avg sol time:")
+    calc_avg_time()
+else
+    objective(initial_pid_params, true)
+end
