@@ -1,23 +1,23 @@
 using Optim
 include("simulator.jl")
 
-Tf = 200.0
+Tf = 80.0
 Ts = 0.1
 desired_water_level = 0.315
 control_methods = ["valve", "frequency", "none"]
+# available types: disturbance1, disturbance2, disturbance3, big-disturbance, no-disturbance, nominal
 test_types = ["disturbance1","disturbance2", "disturbance3", "nominal"]
 pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 
 control_method = "valve"
 pid_method = "PID"
-optimizing = false
+optimizing = true
 
-# test_types = ["disturbance1"]
 delay = 0.05
 overswing_percentage = 0.00
 deviation_percentage = 0.00
 save = false
-name = "Ts - 0.5s - PID.png"
+name = "data/tests/Optimal PID.png"
 
 initial_pid_params = []
 lower = []
@@ -26,7 +26,7 @@ upper = []
 if pid_method == "P"
     lower = [0.0]
     upper = [Inf]
-    initial_pid_params = [37.0, 30.0]
+    initial_pid_params = [2.9775832117568193, 31.955630066723437]
 elseif pid_method == "PI"
     lower = [0.0, 0.0]
     upper = [Inf, Inf]
@@ -38,7 +38,7 @@ elseif pid_method == "PD"
 elseif pid_method == "PID"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [37.78129011219762, 0.06200201920575654, 5.628083016278622]
+    initial_pid_params = [45.0690284349867, 0.3126727304685277, 9.493077005765745] # optimized
 elseif pid_method == "LL"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
@@ -50,11 +50,8 @@ elseif pid_method == "FF"
 end
 
 function plot_sim(sol, title="Water Reservoir")
-    
-    # maxes = [maximum(abs.([u[i] for u in sol.u])) for i in 1:length(sol.u[1])]
-    # plot_u = [[u[i] / maxes[i] for u in sol.u] for i in 1:length(sol.u[1])]
-    # p = plot(sol.t, plot_u, title="Water Reservoir with variable outflow rate", xlabel="Time", ylabel="Water level")
-    
+
+    # p = plot(sol, title=title, xlabel="Time", ylabel="Water level")
     p = plot(sol.t, [u[1] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
     p = plot!(sol.t, [u[5] for u in sol.u], title=title, xlabel="Time", ylabel="Water level")
     return p

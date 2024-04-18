@@ -16,8 +16,9 @@ total_solves = 0
 # Define the water reservoir ODE function
 function water_reservoir_ode(du, u, h, p, t)
     # inflow_rate, max_outflow_rate, opening_speed, desired_water_level = p
-    water_level, valve_position, disturbance_rate, inflow_rate, wanted_valve_position, delayed_valve_position = u
+    water_level, valve_position, disturbance_rate, inflow_rate, wanted_valve_position, delayed_valve_position, delayed_water_level = u
     
+    delayed_water_level = h(p, t-0.5)[1]
     delayed_valve_position = h(p, t-p.delay)[2]
     if p.control_method == "valve"
         inflow_rate = max(p.valve_fill_rate(delayed_valve_position), 0.0)
@@ -55,6 +56,7 @@ function water_reservoir_ode(du, u, h, p, t)
         end
     end
     u[6] = delayed_valve_position
+    u[7] = delayed_water_level
     
     u[3] = disturbance_rate
     u[4] = inflow_rate
@@ -65,19 +67,19 @@ end
 function pid_callback(integrator)
     u = integrator.u
     p = integrator.p
-    water_level = u[1] # Current water level
+    delayed_water_level = u[7] # Use the delayed water level
     outflow_rate = -u[3]
     # println("outflow rate: ", outflow_rate)
     # println("time: ", integrator.t)
     if p.control_method == "none"
         return nothing
     elseif p.control_method == "valve"
-        # if integrator.t > 100.0
-        #     change_mode!(p.pid, true)
-        # else
-        #     change_mode!(p.pid, false)
-        # end
-        wanted_valve_position = pid(p.pid, Float32(p.desired_water_level/p.tank_height*100.0), Float32(water_level/p.tank_height*100.0), Float32(outflow_rate)) # Update valve position using PID controller
+        wanted_valve_position = pid(
+            p.pid, 
+            Float32(p.desired_water_level/p.tank_height*100.0), 
+            Float32(delayed_water_level/p.tank_height*100.0), 
+            Float32(outflow_rate)
+        )
         # println(wanted_valve_position)
         u[5] = wanted_valve_position / 100. # Update valve position in the integrator's state
         return u[5]
@@ -105,7 +107,7 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
         start_water_level = desired_water_level
     end
     
-    initial_conditions = [start_water_level, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
+    initial_conditions = [start_water_level, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
 
     p = (
         tank_height = 0.63,

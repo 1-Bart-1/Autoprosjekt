@@ -209,22 +209,24 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
         # state.output = state.Up + state.Uff
 
 
-        # mode_Tracking
-        if state.mode_Tracking
-            maxNewOutput = state.lastOutput + state.Ts * state.ValveSpeed
-            minNewOutput = state.lastOutput - state.Ts * state.ValveSpeed
-            if state.output > maxNewOutput
-                state.output = maxNewOutput
-            elseif state.output < minNewOutput
-                state.output = minNewOutput
-            end
-            state.lastOutput = state.output
-        end
     end
-
+    
+    # mode_Manual
     if !state.autoMode
         state.Uman = state.UserInput
         state.output = state.Uman
+    end
+    
+    # mode_Tracking
+    if state.mode_Tracking
+        maxNewOutput = state.lastOutput + state.Ts * state.ValveSpeed
+        minNewOutput = state.lastOutput - state.Ts * state.ValveSpeed
+        if state.output > maxNewOutput
+            state.output = maxNewOutput
+        elseif state.output < minNewOutput
+            state.output = minNewOutput
+        end
+        state.lastOutput = state.output
     end
 
     if state.output > state.outMax
