@@ -1,5 +1,13 @@
 should add option for controlling valve opening speed or valve position with pid
 
+we can improve the sensor data:
+        måleverdiFlow + 100 * pådrag/100
+
+
+Tracking: 13s for 4 times to 50 so 3.25s from 0 to 100 in output
+100/3.25 Hz / s
+
+
 Uff:
         disturbance1 speed at 0.315m: 0.00442010398903692
         measurement showing: 24.0

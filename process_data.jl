@@ -89,7 +89,7 @@ function get_polynomials(;load=true)
     println(ft_rate_to_real_rate)
     println(ft_rate_to_real_rate(600))
 
-    # println("disturbance1 speed at 0.315m: ", disturbance_to_rate(disturbance1, 0.315))
+    println("disturbance1 speed at 0.315m: ", disturbance_to_rate(disturbance2, 0.315))
 
     plot_polynomials([disturbance1, disturbance2, disturbance3, bigdisturbance], ["disturbance1", "disturbance2", "disturbance3", "bigdisturbance"], p1, 150)
     plot_polynomials([frequency_fill_rate], ["frequency_fill_rate"], p2, 50)

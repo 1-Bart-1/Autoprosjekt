@@ -37,12 +37,17 @@ mutable struct PIDState
     Kf::Float32
     UserInput::Float32
     ValveSpeed::Float32
+    FreqSpeed::Float32
+    lastSpeed::Float32
+    accelTime::Float32
+    valveAccel::Float32
+    freqAccel::Float32
 end
 
 function PIDState()
-    K_gain = 410163.3859666207
-    Ti = 0.03598674140068368
-    Td = 6.032244476391085
+    K_gain = 45.0690284349867
+    Ti = 0.3126727304685277
+    Td = 9.493077005765745
     derivationFilter = 10.
     mode_Tracking = true
     Uff = 0.
@@ -60,7 +65,7 @@ function PIDState()
     lastMode = false
     outMin = 0.
     outMax = 100.
-    Ts = 0.1
+    Ts = 0.015
     Up = 0.
     Ui = [0., 0.]
     Ud = [0., 0.]
@@ -76,15 +81,21 @@ function PIDState()
     Kf = 0.0
     UserInput = 30.0
     ValveSpeed = 100.0/30.0
+    FreqSpeed = 100.0/3.25
+    lastSpeed = 0.0
+    accelTime = 0.3
+    valveAccel = (ValveSpeed * 2.0) / accelTime
+    freqAccel = (FreqSpeed * 2.0) / accelTime
 
     return PIDState(
-        K_gain, Ti, Td, derivationFilter, mode_Tracking, Uff, Uman, Unom, outputSat, Error, lastError, dInput, lastInput, lastOutput, autoMode, controlMode, ITerm, lastMode, outMin, outMax, Ts, Up, Ui, Ud, Beta, Alpha, Sigma, output, Usat, Tau_lead, Tau_lag, FF_Mode, internal, Kf, UserInput, ValveSpeed
+        K_gain, Ti, Td, derivationFilter, mode_Tracking, Uff, Uman, Unom, outputSat, Error, lastError, dInput, lastInput, lastOutput, autoMode, controlMode, ITerm, lastMode, outMin, outMax, Ts, Up, Ui, Ud, Beta, Alpha, Sigma, output, Usat, Tau_lead, Tau_lag, FF_Mode, internal, Kf, UserInput, ValveSpeed, FreqSpeed, lastSpeed, accelTime, valveAccel, freqAccel
     )
 end
 
 
-function set_parameters!(state::PIDState, pid_params::Vector{Float32}, pid_method::String)
+function set_parameters!(state::PIDState, pid_params::Vector{Float32}, pid_method::String, Ts::Float32)
     state.autoMode = true
+    state.Ts = Ts
     if pid_method == "none"
         state.autoMode = false
     elseif pid_method == "P"
@@ -121,8 +132,8 @@ function set_parameters!(state::PIDState, pid_params::Vector{Float32}, pid_metho
         state.FF_Mode = 1
     elseif pid_method == "FF"
         state.K_gain = pid_params[1]
-        state.Ti = pid_params[2]
-        state.Td = pid_params[3]
+        state.Ti = 0.0
+        state.Td = pid_params[2]
         state.Unom = 0.0
         state.FF_Mode = 2
     end
@@ -136,6 +147,14 @@ function change_mode!(state::PIDState, mode::Bool)
     end
 end
 
+function change_control_mode!(state::PIDState, mode::Bool)
+    if mode
+        state.controlMode = true # frequency mode
+    else
+        state.controlMode = false # valve mode
+    end
+end
+
 
 """
 Setpoint: percentage
@@ -143,6 +162,7 @@ Input: percentage
 FlowRate: measured value from the flow meter
 """
 function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float32)
+    # println("Setpoint: ", Setpoint, ", Input: ", Input, ", FlowRate: ", FlowRate)
     if state.autoMode && !state.lastMode
         state.lastInput = Input
         state.Ui[1] = state.outputSat
@@ -151,7 +171,7 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
     if !state.autoMode && state.lastMode
         state.Uman = state.outputSat
     end
-    
+
     if state.autoMode
         mode_P = (state.K_gain != 0.0 && state.Ti == 0.0 && state.Td == 0.0)
         mode_PI = (state.Ti != 0.0 && state.Td == 0.0)
@@ -193,24 +213,24 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
             real_rate = -0.00571194 + 1.48893e-5 * FlowRate # trenger på plsen!!
             real_rate = FlowRate
             # println("flowrate")
-            if state.controlMode == true
+            if state.controlMode == true # frequency mode
                 state.Uff = (23.3363 + 510.508 * real_rate)
                 state.Uff = state.Uff / 50. * 100. # convert from Hz to percentage
             else
                 state.Uff = (0.238858 + 13.1348 * real_rate) # valve mode
                 state.Uff = state.Uff * 100. # convert from fraction to percentage
             end
+            # println("Uff: ", state.Uff)
         else
             state.Uff = 0.0
         end
-        
+
         # println("Up: ", state.Up, ", Ui[2]: ", state.Ui[2], ", Ud[2]: ", state.Ud[2], ", Unom: ", state.Unom, ", Uff: ", state.Uff)
         state.output = state.Up + state.Ui[2] + state.Ud[2] + state.Unom + state.Uff
         # state.output = state.Up + state.Uff
 
-
     end
-    
+
     # mode_Manual
     if !state.autoMode
         state.Uman = state.UserInput
@@ -218,35 +238,68 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
     end
     
     # mode_Tracking
-    if state.mode_Tracking
-        maxNewOutput = state.lastOutput + state.Ts * state.ValveSpeed
-        minNewOutput = state.lastOutput - state.Ts * state.ValveSpeed
-        if state.output > maxNewOutput
-            state.output = maxNewOutput
-        elseif state.output < minNewOutput
-            state.output = minNewOutput
-        end
-        state.lastOutput = state.output
-    end
+    if state.controlMode == false
+        speed = (state.output - state.lastOutput) / state.Ts
 
+        if speed > state.ValveSpeed
+            speed = state.ValveSpeed
+        elseif speed < -state.ValveSpeed
+            speed = -state.ValveSpeed
+        end
+        state.output = state.lastOutput + speed * state.Ts
+
+        accel = (speed - state.lastSpeed) / state.Ts
+
+        if accel > state.valveAccel
+            speed = state.lastSpeed + state.valveAccel * state.Ts
+        elseif accel < -state.valveAccel
+            speed = state.lastSpeed - state.valveAccel * state.Ts
+        end
+        state.output = state.lastOutput + speed * state.Ts
+
+        state.lastOutput = state.output
+        state.lastSpeed = speed
+    else
+        speed = (state.output - state.lastOutput) / state.Ts
+
+        if speed > state.FreqSpeed
+            speed = state.FreqSpeed
+        elseif speed < -state.FreqSpeed
+            speed = -state.FreqSpeed
+        end
+        state.output = state.lastOutput + speed * state.Ts
+
+        accel = (speed - state.lastSpeed) / state.Ts
+
+        if accel > state.freqAccel
+            speed = state.lastSpeed + state.freqAccel * state.Ts
+        elseif accel < -state.freqAccel
+            speed = state.lastSpeed - state.freqAccel * state.Ts
+        end
+        state.output = state.lastOutput + speed * state.Ts
+
+        state.lastOutput = state.output
+        state.lastSpeed = speed
+    end
+    
+    
+    # clamping
     if state.output > state.outMax
-        state.outputSat = state.outMax
+        state.output = state.outMax
         state.Ui[2] -= state.output - state.outMax
     elseif state.output < state.outMin
-        state.outputSat = state.outMin
+        state.output = state.outMin
         state.Ui[2] += state.outMin - state.output
     else
-        state.outputSat = state.output
+        state.output = state.output
     end
 
     state.Ui[1] = state.Ui[2]
     state.Ud[1] = state.Ud[2]
     state.lastInput = Input
     state.lastMode = state.autoMode
-    # println("output: ", state.outputSat)
-    return state.outputSat
+    # println("output: ", state.output)
+    return state.output
+    # return 100.0
 end
 
-
-# p=PIDState()
-# pid(p, Float32(7.), Float32(6.))
