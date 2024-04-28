@@ -1,3 +1,9 @@
+using Plots
+
+Up_values = []
+Ui_values = []
+Ud_values = []
+time_values = []
 
 
 mutable struct PIDState
@@ -62,12 +68,12 @@ function PIDState()
     autoMode = true
     controlMode = false
     ITerm = 0.
-    lastMode = false
+    lastMode = true
     outMin = 0.
     outMax = 100.
-    Ts = 0.015
+    Ts = 0.1
     Up = 0.
-    Ui = [0., 0.]
+    Ui = [43., 43.]
     Ud = [0., 0.]
     Beta = 0.
     Alpha = 0.
@@ -79,11 +85,11 @@ function PIDState()
     FF_Mode = 0
     internal = [0., 0.]
     Kf = 0.0
-    UserInput = 30.0
+    UserInput = 100.0
     ValveSpeed = 100.0/30.0
     FreqSpeed = 100.0/3.25
     lastSpeed = 0.0
-    accelTime = 0.3
+    accelTime = 1.
     valveAccel = (ValveSpeed * 2.0) / accelTime
     freqAccel = (FreqSpeed * 2.0) / accelTime
 
@@ -210,7 +216,7 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
             state.Uff = state.Kf * (1.0f0 - (state.Tau_lead / state.Tau_lag))*state.internal[1] + state.Kf * (state.Tau_lead / state.Tau_lag)*FlowRate
             state.internal[1] = state.internal[2]
         elseif state.FF_Mode == 2
-            real_rate = -0.00571194 + 1.48893e-5 * FlowRate # trenger på plsen!!
+            # real_rate = -0.00571194 + 1.48893e-5 * FlowRate # trenger på plsen!!
             real_rate = FlowRate
             # println("flowrate")
             if state.controlMode == true # frequency mode
@@ -221,6 +227,7 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
                 state.Uff = state.Uff * 100. # convert from fraction to percentage
             end
             # println("Uff: ", state.Uff)
+            # println(Input)
         else
             state.Uff = 0.0
         end
@@ -298,8 +305,11 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
     state.Ud[1] = state.Ud[2]
     state.lastInput = Input
     state.lastMode = state.autoMode
-    # println("output: ", state.output)
-    return state.output
-    # return 100.0
-end
 
+    # push!(Up_values, state.Up)
+    # push!(Ui_values, state.Ui[2])
+    # push!(Ud_values, state.Ud[2])
+
+    # display(plot([Up_values, Ui_values, Ud_values], label = ["Up" "Ui" "Ud"]))
+    return state.output
+end

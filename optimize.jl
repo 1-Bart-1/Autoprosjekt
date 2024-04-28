@@ -2,23 +2,25 @@ using Optim
 using Statistics
 include("simulator.jl")
 
-Tf = 50.0
+Tf = 100.0
 Ts = 0.1
 desired_water_level = 0.315
 control_methods = ["valve", "frequency", "none"]
 # available types: disturbance1, disturbance2, disturbance3, big-disturbance, no-disturbance, nominal, top
-test_types = ["disturbance2", "nominal"]
+# test_types = ["disturbance1","disturbance2", "disturbance3", "no-disturbance", "nominal"]
+test_types = ["nominal"]
 pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 
 control_method = "frequency"
 pid_method = "PID"
 optimizing = true
+gaining = false
 
-delay = 0.1
+delay = 0.5
 overswing_percentage = 0.00
 deviation_percentage = 0.00
 save = false
-name = "data/PD with top test.png"
+name = "data/PID-Ui-starts-at-100.png"
 
 initial_pid_params = []
 lower = []
@@ -27,20 +29,20 @@ upper = []
 if pid_method == "P"
     lower = [0.0]
     upper = [Inf]
-    initial_pid_params = [2.9775832117568193, 31.955630066723437]
+    initial_pid_params = [1.7932707800610634, 52.]
 elseif pid_method == "PI"
     lower = [0.0, 0.0]
     upper = [Inf, Inf]
-    initial_pid_params = [0.5506795304667496, 8.175481851891133]
+    initial_pid_params = [1.684339927650809, 14.739090829129387]
 elseif pid_method == "PD"
     lower = [0.0, 0.0]
     upper = [Inf, Inf]
-    initial_pid_params = [36.36864678772813, 11.712072615584217, 24.42671164066068] # optimized small delay
+    # [2.6265510101279665, 0.3644522179166053, 53.59498590505952]
+    initial_pid_params = [2.7932707800610634, 0.15638595060619714, 51.66289693699911] # optimized small delay
 elseif pid_method == "PID"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    # initial_pid_params = [45.0690284349867, 0.3126727304685277, 9.493077005765745] # optimized
-    initial_pid_params = [2., 10., 0.1]
+    initial_pid_params = [1.370754931955977, 14.87793054360137, 0.26689473166867783]
 elseif pid_method == "LL"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
@@ -48,7 +50,7 @@ elseif pid_method == "LL"
 elseif pid_method == "FF"
     lower = [0.0, 0.0, 0.0]
     upper = [Inf, Inf, Inf]
-    initial_pid_params = [36.36864678772813, 11.712072615584217] # optimized big delay and disturbance
+    initial_pid_params = [2.7932707800610634, 0.15638595060619714] # optimized big delay and disturbance
 end
 
 function plot_sim(sol, title="Water Reservoir")
@@ -65,28 +67,31 @@ function objective(pid_params, print=false)
     cost = 0.0
     plots = []
     times = []
-    println(pid_params)
+    # println(pid_params)
     for test_type in test_types
         sol, p = simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_method, test_type, delay)
         # println(Tf)
         
         time_reached_level = 10000.0
         overswing = 0.0
-
+        index = 1
         if test_type == "top"
             extreme_level = minimum([u[1] for u in sol.u])
-            for (t, u) in zip(sol.t, sol.u)
-                if t >= 1 && u[1] <= p.desired_water_level*1.01
+            for (i, (t, u)) in enumerate(zip(sol.t, sol.u))
+                if t >= 5 && u[1] <= p.desired_water_level*1.01
                     time_reached_level = t
+                    index = i
+                    println(i)
                     break
                 end
             end
             overswing = p.desired_water_level - extreme_level
         else
             extreme_level = maximum([u[1] for u in sol.u])
-            for (t, u) in zip(sol.t, sol.u)
-                if t >= 1 && u[1] >= p.desired_water_level*0.99
+            for (i, (t, u)) in enumerate(zip(sol.t, sol.u))
+                if t >= 5 && u[1] >= p.desired_water_level*0.99
                     time_reached_level = t
+                    index = i
                     break
                 end
             end
@@ -95,19 +100,20 @@ function objective(pid_params, print=false)
 
         push!(times, time_reached_level)
         
-        u_values = [u[1] for u in sol.u]
-        differences = diff(u_values)
-        time = @elapsed oscillation = std(differences)
-        # println(oscillation, " oscillation time ", time)
-
         overswing_cost = max(overswing, overswing_percentage*p.desired_water_level) / p.desired_water_level
-
+        
         time_cost = time_reached_level
-
-        stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
+        
+        # stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
+        u_values_after_time = [u[1] for u in sol.u[index:end]]
+        differences = abs.(u_values_after_time .- desired_water_level)
+        stable_deviation = sum(differences) / length(u_values_after_time)
         stable_deviation_cost = max(stable_deviation, deviation_percentage*p.desired_water_level) / p.desired_water_level
 
-        cost += overswing_cost*10 + time_cost / 100 + stable_deviation_cost*10 + oscillation*1000
+        cost += overswing_cost*10 + time_cost * 0.001 + stable_deviation_cost*10
+        # println("over ",overswing_cost*10)
+        # println("time ",time_cost / 1000)
+        # println("stable ",stable_deviation_cost*10)
         if print
             push!(plots, plot_sim(sol, test_type))
             println("Objective summary:")
@@ -134,18 +140,33 @@ function objective(pid_params, print=false)
             display(p)
         end
     end
-    println(cost)
+    # println(cost)
     return cost
 end
 
 function optimize()
-    global initial_pid_params, pid_method, lower, upper
+    global initial_pid_params, pid_method, lower, upper, desired_water_level
 
-
-    # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing())
-    results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=100.0))
-    println(summary(results))
-    objective(Optim.minimizer(results), true)
+    if gaining
+        schedules = []
+        percentage = 0
+        for percentage in 25:5:75
+            desired_water_level = percentage/100*0.63
+            # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing())
+            results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=60.0))
+            println(summary(results))
+            objective(Optim.minimizer(results), true)
+            push!(schedules, [Optim.minimizer(results), percentage])
+            println("Kps: ", [schedule[1][1] for schedule in schedules])
+            println("Tds: ", [schedule[1][2] for schedule in schedules])
+            println("Level: ", [schedule[2] for schedule in schedules])
+        end
+    else
+        # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing())
+        results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=60.0*5))
+        println(summary(results))
+        objective(Optim.minimizer(results), true)
+    end
 end
 
 if optimizing

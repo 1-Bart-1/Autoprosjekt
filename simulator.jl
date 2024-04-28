@@ -37,8 +37,14 @@ function water_reservoir_ode(du, u, h, p, t)
         disturbance_rate = disturbance_to_rate(p.disturbance3, u[1])
     elseif p.test_type == "big-disturbance"
         disturbance_rate = disturbance_to_rate(p.bigdisturbance, u[1])
+    elseif p.test_type == "no-disturbance"
+        disturbance_rate = 0.0
     else
         throw(ArgumentError("Invalid test type"))
+    end
+
+    if p.control_method == "frequency" && t < 3.8
+        disturbance_rate = 0.0
     end
     
     # disturbance += rand() * 0.0001
@@ -95,12 +101,15 @@ function pid_callback(integrator)
         u[5] = wanted_valve_position / 100. # Update valve position in the integrator's state
         return u[5]
     elseif p.control_method == "frequency"
+        # for i in 1:1000
         wanted_valve_position = pid(
             p.pid, 
             Float32(p.desired_water_level/p.tank_height*100.0), 
-            Float32(delayed_water_level/p.tank_height*100.0 + rand()*0.3), 
+            Float32(delayed_water_level/p.tank_height*100.0 + rand()*3.0), 
             Float32(outflow_rate)
         )
+        # end
+        # throw(ArgumentError("Invalid test type"))
         u[5] = wanted_valve_position / 100. * 50. # Update frequency in the integrator's state
         return u[5]
     end
@@ -153,7 +162,7 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
     prob = DDEProblem(water_reservoir_ode, initial_conditions, h, tspan, p, callback=cb)
 
     # Solve the problem
-    total_time += @elapsed sol = solve(prob, alg, saveat=Ts)
+    total_time += @elapsed sol = solve(prob, alg, saveat=Ts) # maxiters=3e4
     # println("length of sol: ", length(sol.t))
     total_solves += 1
     return sol, p
