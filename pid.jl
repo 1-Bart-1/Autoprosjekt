@@ -73,7 +73,7 @@ function PIDState()
     outMax = 100.
     Ts = 0.1
     Up = 0.
-    Ui = [43., 43.]
+    Ui = [0., 0.]
     Ud = [0., 0.]
     Beta = 0.
     Alpha = 0.

@@ -14,7 +14,7 @@ pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 control_method = "frequency"
 pid_method = "PID"
 optimizing = true
-gaining = false
+gaining = true
 
 delay = 0.5
 overswing_percentage = 0.00
@@ -158,7 +158,8 @@ function optimize()
             objective(Optim.minimizer(results), true)
             push!(schedules, [Optim.minimizer(results), percentage])
             println("Kps: ", [schedule[1][1] for schedule in schedules])
-            println("Tds: ", [schedule[1][2] for schedule in schedules])
+            println("Tis: ", [schedule[1][2] for schedule in schedules])
+            println("Tds: ", [schedule[1][3] for schedule in schedules])
             println("Level: ", [schedule[2] for schedule in schedules])
         end
     else
