@@ -86,9 +86,9 @@ function get_polynomials(;load=true)
     rate_to_valve = get_fill_rate(data, "valve", p3, true)
 
     ft_rate_to_real_rate = get_ft_rate_to_real_rate(data, p2)
-    println(frequency_fill_rate(53.4/2))
-    println(disturbance_to_rate(disturbance2, 0.5227*0.63))
-    println(rate_to_frequency(0.006584132278384037)*2.)
+    
+    println("frequency_fill_rate: ", frequency_fill_rate/0.0063)
+    println("valve_fill_rate: ", valve_fill_rate/0.0063)
 
     plot_polynomials([disturbance1, disturbance2, disturbance3, bigdisturbance], ["disturbance1", "disturbance2", "disturbance3", "bigdisturbance"], p1, 150)
     plot_polynomials([frequency_fill_rate], ["frequency_fill_rate"], p2, 50)
@@ -104,4 +104,4 @@ function get_polynomials(;load=true)
     return polynomials
 end
 
-# get_polynomials(load=false)
+get_polynomials(load=false)

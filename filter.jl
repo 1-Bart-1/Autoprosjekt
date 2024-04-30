@@ -66,12 +66,17 @@ function filter_speed(noisy_signal, velocity, t)
     delayed_signal = delayed_signal*(1-a) + noisy_signal*a
     push!(delayed_signals, delayed_signal)
 
-    filter_velocity = (noisy_signal - old_signal) / Ts
-    if abs(filter_velocity) > abs(velocity)
-        filter_velocity = velocity
+    rate_out = x
+    if mode == "frequency"
+        x = output / 2.0
+        rate_in = -6.66135 + 0.298024*x # where x is in Hz
+    elseif mode == "valve"
+        x = output / 100.0
+        rate_in = -2.70011 + 11.8184*x # where x is fraction opened
     end
-    filtered_signal = old_signal + filter_velocity*Ts
-    filtered_signal = (noisy_signal - filtered_signal) * 0.005 + filtered_signal
+
+    filtered_signal = old_signal + velocity*Ts
+    filtered_signal = (noisy_signal - filtered_signal) * 0.01 + filtered_signal
     old_signal = filtered_signal
     push!(filtered_signals2, filtered_signal)
 end
@@ -80,7 +85,7 @@ function test_filter()
     global Ts
     test_velocity = 1.0
     test_signal = 0.0
-    for t in 1:1000
+    for t in 1:10000
         if t>100 && t<200
             test_velocity += 0.1
         elseif t>200 && t<300
@@ -95,7 +100,7 @@ function test_filter()
         noisy_test_signal = test_signal + (rand()-0.5)*20 + (sin(t/5)-0.5)*50.0
 
         push!(test_signals, noisy_test_signal)
-        filter_speed(noisy_test_signal, test_velocity*0.9+(rand()-0.5), t)
+        filter_speed(noisy_test_signal, test_velocity, t)
         # filter(noisy_test_signal, test_velocity, t)
     end
 end
@@ -104,15 +109,15 @@ end
 test_filter()
 
 plot()
-# plot!(delayed_signals[490:510], label="Delayed Signal")
-plot!(test_signals[490:510], label="Test Signal")
-# plot!(filtered_signals[490:510], label="Filtered Signal")
-plot!(filtered_signals2[490:510], label="Filtered Signal")
-# plot!(velocities[4500:5500], label="Velocity")
+# plot!(delayed_signals[9000:10000], label="Delayed Signal")
+# plot!(test_signals[9000:10000], label="Test Signal")
+# # plot!(filtered_signals[490:510], label="Filtered Signal")
+# plot!(filtered_signals2[9000:10000], label="Filtered Signal")
+# # plot!(velocities[4500:5500], label="Velocity")
 
 plot(test_signals, label="Test Signal")
 plot!(delayed_signals, label="Delayed Signal")
 # plot!(filtered_signals, label="Filtered Signal")
 plot!(filtered_signals2, label="Sensor fused filter Signal")
 
-savefig("sensor-fused.png")
+# savefig("sensor-fused.png")

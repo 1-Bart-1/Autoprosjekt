@@ -9,11 +9,11 @@ include("pid.jl")
 
 disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, rate_to_frequency, rate_to_valve = get_polynomials()
 
-alg = MethodOfSteps(Rosenbrock23(autodiff=false))
+alg = MethodOfSteps(Tsit5())
 total_time = 0.0
 total_solves = 0
 
-# Define the water reservoir ODE function
+# Define the water reservoir DDE function
 function water_reservoir_ode(du, u, h, p, t)
     water_level, valve_position, disturbance_rate, inflow_rate, wanted_valve_position, delayed_valve_position, delayed_water_level = u
     
@@ -94,7 +94,7 @@ function pid_callback(integrator)
         wanted_valve_position = pid(
             p.pid, 
             Float32(p.desired_water_level/p.tank_height*100.0), 
-            Float32(delayed_water_level/p.tank_height*100.0 + rand()*0.3), 
+            Float32(delayed_water_level/p.tank_height*100.0 + rand()), 
             Float32(outflow_rate)
         )
         # println(wanted_valve_position)
@@ -105,7 +105,7 @@ function pid_callback(integrator)
         wanted_valve_position = pid(
             p.pid, 
             Float32(p.desired_water_level/p.tank_height*100.0), 
-            Float32(delayed_water_level/p.tank_height*100.0 + rand()*3.0), 
+            Float32(delayed_water_level/p.tank_height*100.0 + rand()), 
             Float32(outflow_rate)
         )
         # end
@@ -131,6 +131,7 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
     elseif test_type == "top"
         start_water_level = 0.63
     else
+        pid.Ui = [40.0, 40.0]
         start_water_level = desired_water_level
     end
     

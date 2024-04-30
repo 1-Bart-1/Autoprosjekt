@@ -8,15 +8,15 @@ desired_water_level = 0.315
 control_methods = ["valve", "frequency", "none"]
 # available types: disturbance1, disturbance2, disturbance3, big-disturbance, no-disturbance, nominal, top
 # test_types = ["disturbance1","disturbance2", "disturbance3", "no-disturbance", "nominal"]
-test_types = ["nominal"]
+test_types = ["top"]
 pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 
 control_method = "frequency"
 pid_method = "PID"
 optimizing = true
-gaining = true
+gaining = false
 
-delay = 0.5
+delay = 0.2
 overswing_percentage = 0.00
 deviation_percentage = 0.00
 save = false
@@ -81,7 +81,6 @@ function objective(pid_params, print=false)
                 if t >= 5 && u[1] <= p.desired_water_level*1.01
                     time_reached_level = t
                     index = i
-                    println(i)
                     break
                 end
             end
@@ -153,7 +152,7 @@ function optimize()
         for percentage in 25:5:75
             desired_water_level = percentage/100*0.63
             # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing())
-            results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=60.0))
+            results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=60.0*10.0))
             println(summary(results))
             objective(Optim.minimizer(results), true)
             push!(schedules, [Optim.minimizer(results), percentage])
@@ -164,7 +163,7 @@ function optimize()
         end
     else
         # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing())
-        results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=60.0*5))
+        results = Optim.optimize(objective, lower, upper, initial_pid_params, SAMIN(), Optim.Options(time_limit=60.0*10.0))
         println(summary(results))
         objective(Optim.minimizer(results), true)
     end
