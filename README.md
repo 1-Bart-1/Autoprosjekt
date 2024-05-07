@@ -7,7 +7,6 @@ we can improve the sensor data:
 Tracking: 13s for 4 times to 50 so 3.25s from 0 to 100 in output
 100/3.25 Hz / s
 
-Set Ts and derivatfilter
 
 
 Motor on off so there is no jump in output

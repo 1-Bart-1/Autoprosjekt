@@ -26,7 +26,7 @@ function water_reservoir_ode(du, u, h, p, t)
     else
         inflow_rate = 0.0
     end
-    
+
     if p.test_type == "nominal" || p.test_type == "top"
         disturbance_rate = disturbance_to_rate(p.disturbance2, u[1])
     elseif p.test_type == "disturbance1"
@@ -52,7 +52,9 @@ function water_reservoir_ode(du, u, h, p, t)
     du[5] = 0.0 # Placeholder for valve position update, will be updated by callback
     
     if p.control_method != "none"
-        if wanted_valve_position < valve_position
+        if t < 0.2
+            valve_position = wanted_valve_position
+        elseif wanted_valve_position < valve_position
             if p.control_method == "valve"
                 du[2] = delta_valve_position = -p.valve_speed
             elseif p.control_method == "frequency"
@@ -88,13 +90,23 @@ function pid_callback(integrator)
     outflow_rate = -u[3]
     # println("outflow rate: ", outflow_rate)
     # println("time: ", integrator.t)
+
+
+    # if p.test_type == "nominal" && integrator.t < p.Tf / 2.0
+    #     desired_water_level = p.tank_height * 0.25
+    # else
+    #     desired_water_level = p.desired_water_level
+    # end
+    desired_water_level = p.desired_water_level
+
+
     if p.control_method == "none"
         return nothing
     elseif p.control_method == "valve"
         wanted_valve_position = pid(
             p.pid, 
-            Float32(p.desired_water_level/p.tank_height*100.0), 
-            Float32(delayed_water_level/p.tank_height*100.0 + rand()), 
+            Float32(desired_water_level/p.tank_height*100.0), 
+            Float32(delayed_water_level/p.tank_height*100.0 + rand()*0.05), 
             Float32(outflow_rate)
         )
         # println(wanted_valve_position)
@@ -104,8 +116,8 @@ function pid_callback(integrator)
         # for i in 1:1000
         wanted_valve_position = pid(
             p.pid, 
-            Float32(p.desired_water_level/p.tank_height*100.0), 
-            Float32(delayed_water_level/p.tank_height*100.0 + rand()), 
+            Float32(desired_water_level/p.tank_height*100.0), 
+            Float32(delayed_water_level/p.tank_height*100.0 + rand()*0.05), 
             Float32(outflow_rate)
         )
         # end
@@ -115,27 +127,38 @@ function pid_callback(integrator)
     end
 end
 
-function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_method, test_type, delay)
+function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_method, test_type, delay, Ui_start)
     global total_time, total_solves
     # while length(pid_params) < 3
     #     push!(params, 0.0)
     # end
     # K, Ti, Td = max.(pid_params, [0.,0.,0.])
     pid_params = convert(Vector{Float32}, pid_params)
+
+    Ui_start = (test_type == "nominal") ? Ui_start : 0.0
+
     pid = PIDState()
     set_parameters!(pid, pid_params, pid_method, Float32(Ts))
-    change_control_mode!(pid, control_method == "frequency")
+    change_control_mode!(pid, control_method == "frequency", Float32(Ui_start))
     
     if test_type == "nominal"
-        start_water_level = 0.0
+        start_water_level = 0.63*0.25
     elseif test_type == "top"
         start_water_level = 0.63
     else
-        pid.Ui = [40.0, 40.0]
         start_water_level = desired_water_level
     end
     
-    initial_conditions = [start_water_level, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Initial water level and valve position
+    
+    initial_conditions = [
+        start_water_level, 
+        0.0, 
+        0.0, 
+        0.0, 
+        control_method == "frequency" ? Ui_start/50 : Ui_start / 100, 
+        0.0, 
+        start_water_level
+        ]
 
     p = (
         tank_height = 0.63,
@@ -163,7 +186,7 @@ function simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_m
     prob = DDEProblem(water_reservoir_ode, initial_conditions, h, tspan, p, callback=cb)
 
     # Solve the problem
-    total_time += @elapsed sol = solve(prob, alg, saveat=Ts) # maxiters=3e4
+    total_time += @elapsed sol = solve(prob, alg, saveat=Ts) # maxiters=1e7
     # println("length of sol: ", length(sol.t))
     total_solves += 1
     return sol, p

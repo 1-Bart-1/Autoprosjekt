@@ -3,6 +3,7 @@ using Plots
 Up_values = []
 Ui_values = []
 Ud_values = []
+outputs = []
 time_values = []
 
 
@@ -64,7 +65,7 @@ function PIDState()
     lastError = 0.
     dInput = 0.
     lastInput = 0.
-    lastOutput = 0.
+    lastOutput = 49.8
     autoMode = true
     controlMode = false
     ITerm = 0.
@@ -78,7 +79,7 @@ function PIDState()
     Beta = 0.
     Alpha = 0.
     Sigma = 0.
-    output = 0.
+    output = 49.8
     Usat = 0.
     Tau_lead = 0.
     Tau_lag = 0.
@@ -153,12 +154,17 @@ function change_mode!(state::PIDState, mode::Bool)
     end
 end
 
-function change_control_mode!(state::PIDState, mode::Bool)
+function change_control_mode!(state::PIDState, mode::Bool, Ui_start::Float32)
     if mode
         state.controlMode = true # frequency mode
     else
         state.controlMode = false # valve mode
     end
+    start = Ui_start
+    state.Ui[1] = start
+    state.Ui[2] = start
+    state.output = start
+    state.lastOutput = start
 end
 
 
@@ -202,7 +208,7 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
         end
 
         # D-leddet
-        if mode_PD || mode_PID
+        if mode_PD || mode_PID && state.lastInput != 0.0
             Beta = state.Td / (state.Td + state.derivationFilter)
             Sigma = state.K_gain * (state.Td / state.Ts) * (1.0 - Beta)
             state.Ud[2] = Beta * state.Ud[1] - Sigma * state.dInput
@@ -309,7 +315,8 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
     # push!(Up_values, state.Up)
     # push!(Ui_values, state.Ui[2])
     # push!(Ud_values, state.Ud[2])
+    # # push!(outputs, state.output)
 
-    # display(plot([Up_values, Ui_values, Ud_values], label = ["Up" "Ui" "Ud"]))
+    # display(plot([Up_values, Ui_values, Ud_values], label = ["Up Ui Ud"]))
     return state.output
 end

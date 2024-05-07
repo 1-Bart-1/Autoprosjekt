@@ -47,6 +47,12 @@ function get_ft_rate_to_real_rate(data, p)
 end
 
 function disturbance_to_rate(disturbance, level)
+    # try
+    #     time_at_level = minimum(real(roots(disturbance - Float32(level))))
+    # catch
+    #     println("disturbance ", disturbance)
+    #     return "hlskjd"
+    # end
     time_at_level = minimum(real(roots(disturbance - level)))
     flow_rate = derivative(disturbance)
     rate_at_level = flow_rate(time_at_level)
@@ -87,16 +93,21 @@ function get_polynomials(;load=true)
 
     ft_rate_to_real_rate = get_ft_rate_to_real_rate(data, p2)
     
-    println("frequency_fill_rate: ", frequency_fill_rate/0.0063)
-    println("valve_fill_rate: ", valve_fill_rate/0.0063)
+    println("z_f(u) ", frequency_fill_rate)
+    println("z_v(u) ", valve_fill_rate)
+
+    println(rate_to_frequency)
+    println(rate_to_valve)
 
     plot_polynomials([disturbance1, disturbance2, disturbance3, bigdisturbance], ["disturbance1", "disturbance2", "disturbance3", "bigdisturbance"], p1, 150)
     plot_polynomials([frequency_fill_rate], ["frequency_fill_rate"], p2, 50)
     plot_polynomials([valve_fill_rate], ["valve_fill_rate"], p3, 1)
 
     # p = plot(p1, p2, p3, layout = (3, 1))  # Combine the plots into a single plot with 3 subplots
-    # xlabel!(p, "time")
-    # display(p4)
+    ylabel!(p1, "Vannivå [m]")
+    xlabel!(p1, "Tid [s]")
+    display(p1)
+    savefig("data/water_level_over_time.png")
 
     polynomials = (disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, rate_to_frequency, rate_to_valve)
 
@@ -104,4 +115,4 @@ function get_polynomials(;load=true)
     return polynomials
 end
 
-get_polynomials(load=false)
+# get_polynomials(load=false)

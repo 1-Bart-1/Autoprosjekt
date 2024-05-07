@@ -8,7 +8,7 @@ x_2 = [0.0, 0.0]
 r_1 = 0.0
 Ts = 0.1  # Sample time, adjust as needed
 threshold = 0.1  # Tolerance, adjust as needed
-a = 1.0
+a = 0.1
 
 # Function to update the system
 function update_system(input)
@@ -51,18 +51,20 @@ end
 
 
 results = Float64[]  # Initialize an empty array to store the results
-for i in 1:100
+for i in 1:30/Ts
     push!(results, update_system(100))  # Store the result of each iteration
 end
-for i in 1:100
+for i in 1:30/Ts
     push!(results, update_system(10))  # Store the result of each iteration
 end
-for i in 1:100
+for i in 1:30/Ts
     push!(results, update_system(40))  # Store the result of each iteration
 end
-display(plot(results, title="Second order LPF - a = 2.0", xlabel="Time", ylabel="Output"))
 
-# savefig("data/second_order_lpf_up_and_down.png")
+
+display(plot(results, title="Second order LPF - a = $a", xlabel="Timestep", ylabel="Output"))
+
+# savefig("second_order_lpf_up_and_down2.png")
 
 
 

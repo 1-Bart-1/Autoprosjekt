@@ -75,7 +75,15 @@ function filter_speed(noisy_signal, velocity, t)
         rate_in = -2.70011 + 11.8184*x # where x is fraction opened
     end
 
-    filtered_signal = old_signal + velocity*Ts
+    if rate_in < 0.0
+        rate_in = 0.0
+    end
+
+    if rate_out > 0.0
+        rate_out = 0.0
+    end
+
+    filtered_signal = old_signal + rate_out*Ts + rate_in * Ts
     filtered_signal = (noisy_signal - filtered_signal) * 0.01 + filtered_signal
     old_signal = filtered_signal
     push!(filtered_signals2, filtered_signal)
