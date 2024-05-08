@@ -3,7 +3,7 @@ using Statistics
 # using Traceur
 include("simulator.jl")
 
-Tf = 30.0
+Tf = 200.0
 Ts = 0.1
 desired_water_level = 0.63*0.5
 control_methods = ["valve", "frequency", "none"]
@@ -12,12 +12,12 @@ control_methods = ["valve", "frequency", "none"]
 test_types = ["nominal"]
 pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 
-control_method = "frequency"
-pid_method = "PID"
+control_method = "valve"
+pid_method = "PI"
 optimizing = true
-gaining = true
+gaining = false
 
-Ui_start = Dict("frequency" => 50.0, "valve" => 23)
+Ui_start = Dict("frequency" => 45.0, "valve" => 28)
 delay = 0.15
 overswing_percentage = 0.00
 deviation_percentage = 0.00
@@ -31,18 +31,18 @@ upper = []
 if pid_method == "P"
     lower = [0.0]
     upper = [100.0]
-    initial_pid_params = [1.7932707800610634, 52.]
+    initial_pid_params = [1.832533737480591, 30.89348291104043]
 elseif pid_method == "PI"
     lower = [0.0, 0.0]
     upper = [10.0, 20.0]
-    initial_pid_params = [1.370754931955977, 10.35612208556117]
+    initial_pid_params = [1.47, 98.67]
 elseif pid_method == "PD"
     lower = [0.0, 0.0]
     upper = [100.0, 100.0]
     # [2.6265510101279665, 0.3644522179166053, 53.59498590505952]
-    initial_pid_params = [2.7932707800610634, 0.15638595060619714, 51.66289693699911] # optimized small delay
+    initial_pid_params = [4.746991649542153, 3.705256548583782, 30.89348291104043]
 elseif pid_method == "PID"
-    initial_pid_params = [4.28, 87.93, 0.46]
+    initial_pid_params = [1.832533737480591, 137.57797412924128, 0.4699211378622232]
     lower = initial_pid_params .* 0.9
     upper = initial_pid_params .* 1.1
     # [28.20622361299269, 136.80898413151664, 124.05967404761557]
@@ -53,7 +53,7 @@ elseif pid_method == "LL"
 elseif pid_method == "FF"
     lower = [0.0, 0.0, 0.0]
     upper = [100.0, 100.0, 100.0]
-    initial_pid_params = [2.7932707800610634, 0.15638595060619714] # optimized big delay and disturbance
+    initial_pid_params = [30.537696759579916, 5.1686247318201834] # optimized big delay and disturbance
 end
 
 function plot_sim(sol, title="Water Reservoir")
@@ -181,7 +181,7 @@ function optimize()
             println("Level: ", [schedule[2] for schedule in schedules])
         end
     else
-        results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(iterations=Int(1e6), time_limit=60.0*10.0))
+        results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(iterations=Int(1e6), time_limit=60.0*1.0))
         # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=60.0*5.0))
         println(summary(results))
         objective(Optim.minimizer(results), true)

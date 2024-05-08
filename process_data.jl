@@ -93,11 +93,7 @@ function get_polynomials(;load=true)
 
     ft_rate_to_real_rate = get_ft_rate_to_real_rate(data, p2)
     
-    println("z_f(u) ", frequency_fill_rate)
-    println("z_v(u) ", valve_fill_rate)
-
-    println(rate_to_frequency)
-    println(rate_to_valve)
+    println("rate at 0.3: ", disturbance_to_rate(disturbance2, 0.3))
 
     plot_polynomials([disturbance1, disturbance2, disturbance3, bigdisturbance], ["disturbance1", "disturbance2", "disturbance3", "bigdisturbance"], p1, 150)
     plot_polynomials([frequency_fill_rate], ["frequency_fill_rate"], p2, 50)

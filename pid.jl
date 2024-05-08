@@ -250,6 +250,16 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
         state.output = state.Uman
     end
     
+    
+    # # clamping
+    # if state.output > state.outMax
+    #     state.Ui[2] -= state.output - state.outMax
+    # elseif state.output < state.outMin
+    #     state.Ui[2] += state.outMin - state.output
+    # else
+    #     state.output = state.output
+    # end
+    
     # mode_Tracking
     if state.controlMode == false
         speed = (state.output - state.lastOutput) / state.Ts
@@ -293,18 +303,6 @@ function pid(state::PIDState, Setpoint::Float32, Input::Float32, FlowRate::Float
 
         state.lastOutput = state.output
         state.lastSpeed = speed
-    end
-    
-    
-    # clamping
-    if state.output > state.outMax
-        state.output = state.outMax
-        state.Ui[2] -= state.output - state.outMax
-    elseif state.output < state.outMin
-        state.output = state.outMin
-        state.Ui[2] += state.outMin - state.output
-    else
-        state.output = state.output
     end
 
     state.Ui[1] = state.Ui[2]

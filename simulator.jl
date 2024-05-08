@@ -92,12 +92,12 @@ function pid_callback(integrator)
     # println("time: ", integrator.t)
 
 
-    # if p.test_type == "nominal" && integrator.t < p.Tf / 2.0
-    #     desired_water_level = p.tank_height * 0.25
-    # else
-    #     desired_water_level = p.desired_water_level
-    # end
-    desired_water_level = p.desired_water_level
+    if p.test_type == "nominal" && integrator.t < p.Tf / 2.0
+        desired_water_level = p.tank_height * 0.25
+    else
+        desired_water_level = p.desired_water_level
+    end
+    # desired_water_level = p.desired_water_level
 
 
     if p.control_method == "none"
