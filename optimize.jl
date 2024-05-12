@@ -1,64 +1,53 @@
 using Optim
 using Statistics
-# using Traceur
+using ProgressBars
+using YAML
+# using Base.Threads
+
 include("simulator.jl")
 
-Tf = 200.0
-Ts = 0.1
-desired_water_level = 0.63*0.5
-control_methods = ["valve", "frequency", "none"]
-# available types: disturbance1, disturbance2, disturbance3, big-disturbance, no-disturbance, nominal, top
-# test_types = ["disturbance1","disturbance2", "disturbance3", "big-disturbance", "no-disturbance", "nominal"]
-test_types = ["nominal"]
-pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
+"""
+USER INPUT
+"""
 
-control_method = "valve"
-pid_method = "PI"
-optimizing = true
-gaining = false
+control_method = "frequency" # available control_methods = ["valve", "frequency", "none"]
+pid_method = "PD"
 
-Ui_start = Dict("frequency" => 45.0, "valve" => 28)
-delay = 0.15
+Tf = 200.0 # total simulation time
+Ts = 0.1 # sample time of pid controller
+delay = 0.15 # delay from output of pid controller to change in inflow rate
+desired_water_level = 0.63*0.5 # desired water level in meter
+test_types = ["nominal"] # available test_types = ["disturbance1", "disturbance2", "disturbance3", "big-disturbance", "no-disturbance", "nominal"]
+pid_methods = ["PI"] # available pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
+
+optimizing = false
+seconds = 10
+gain_scheduling = false # gain scheduling is only implemented for PID
+plot_all = false
+optimize_t_i = false
+
 overswing_percentage = 0.00
 deviation_percentage = 0.00
 save = false
 name = "data/pid_sim_new_params.png"
+Ui_start = Dict("frequency" => 45.0, "valve" => 28)
 
-initial_pid_params = []
-lower = []
-upper = []
 
-if pid_method == "P"
-    lower = [0.0]
-    upper = [100.0]
-    initial_pid_params = [1.832533737480591, 30.89348291104043]
-elseif pid_method == "PI"
-    lower = [0.0, 0.0]
-    upper = [10.0, 20.0]
-    initial_pid_params = [1.47, 98.67]
-elseif pid_method == "PD"
-    lower = [0.0, 0.0]
-    upper = [100.0, 100.0]
-    # [2.6265510101279665, 0.3644522179166053, 53.59498590505952]
-    initial_pid_params = [4.746991649542153, 3.705256548583782, 30.89348291104043]
-elseif pid_method == "PID"
-    initial_pid_params = [1.832533737480591, 137.57797412924128, 0.4699211378622232]
-    lower = initial_pid_params .* 0.9
-    upper = initial_pid_params .* 1.1
-    # [28.20622361299269, 136.80898413151664, 124.05967404761557]
-elseif pid_method == "LL"
-    lower = [0.0, 0.0, 0.0]
-    upper = [100.0, 100.0, 100.0]
-    initial_pid_params = [37.78129011219762, 0.06200201920575654, 5.628083016278622]
-elseif pid_method == "FF"
-    lower = [0.0, 0.0, 0.0]
-    upper = [100.0, 100.0, 100.0]
-    initial_pid_params = [30.537696759579916, 5.1686247318201834] # optimized big delay and disturbance
-end
+"""
+OPTIMIZATION
+"""
+
+initial_pid_params = YAML.load_file("params.yaml")
+println("Initial pid params: ", initial_pid_params[control_method][pid_method])
+
+start_time = time()
+last_time = time()
+# progress_bar = Progress(seconds, 1, "optimizing... ")
+progress_bar = ProgressBar(total=seconds)
+set_description(progress_bar, "optimizing... ")
 
 function plot_sim(sol, title="Water Reservoir")
     title = title * " - Ui_start = $(Ui_start[control_method]) - optimized"
-    title = ""
     # p = plot(sol, title=title, xlabel="Time", ylabel="Water level")
     p = plot(sol.t, [u[1]/0.63 for u in sol.u], title=title, xlabel="Time", ylabel="Water level", ylims=(0, 1))
     n = control_method == "frequency" ? 50 : 1
@@ -69,7 +58,7 @@ function plot_sim(sol, title="Water Reservoir")
 end
 
 function objective(pid_params, print=false)
-    global Tf
+    global Tf, initial_pid_params, progress_bar, last_time
     cost = 0.0
     plots = []
     times = []
@@ -77,14 +66,17 @@ function objective(pid_params, print=false)
         return 1000
     end
     pid_params = [max(param, 0.01) for param in pid_params]
-    # println(pid_params)
+    if length(pid_params) == 2 && pid_method == "PID" && !optimize_t_i
+        push!(pid_params, pid_params[2])
+        pid_params[2] = initial_pid_params[control_method]["PID"][2]
+    end
     for test_type in test_types
         sol, p = simulate(pid_params, Tf, Ts, desired_water_level, control_method, pid_method, test_type, delay, Ui_start[control_method])
 
         if sol.t[end] < Tf * 0.9
             cost += 1000
         end
-        
+
         time_reached_level = 10000.0
         overswing = 0.0
         index = 1
@@ -111,12 +103,12 @@ function objective(pid_params, print=false)
         end
 
         push!(times, time_reached_level)
-        
+
         overswing_cost = max(overswing, overswing_percentage*p.desired_water_level) / p.desired_water_level
-        
+
         time_reached_level = (test_type == "nominal") ? (time_reached_level - Tf/2) : time_reached_level
         time_cost = time_reached_level
-        
+
         # stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
         u_values_after_time = [u[1] for u in sol.u[index:end]]
         differences = abs.(u_values_after_time .- desired_water_level)
@@ -126,12 +118,14 @@ function objective(pid_params, print=false)
         if overswing < 0.0
             overswing_cost = 100.0
         end
+
         cost += overswing_cost*10 + time_cost * 0.001 + stable_deviation_cost*10
-        # println("over ",overswing_cost*10)
-        # println("time ",time_cost / 1000)
-        # println("stable ",stable_deviation_cost*10)
-        if print
+        if plot_all || print
             push!(plots, plot_sim(sol, test_type))
+        end
+        if print
+            initial_pid_params[control_method][pid_method] = pid_params
+
             println("Objective summary:")
             println("\t Test type: ", test_type)
             println("\t Control method: ", p.control_method)
@@ -147,31 +141,41 @@ function objective(pid_params, print=false)
         end
     end
 
-    # Tf = min(max(times...) * 2, 200)
+    # Tf = min(max(times...) * 2, 200) # this can speed up the optimizing process, but is less stable
 
-    if print
-        # p = plot(plots..., layout=(length(test_types), 1), size=(800, 1600))
-        p = plot(plots..., layout=(length(test_types), 1))
+    if print || plot_all
+        p = plot(plots..., layout=(length(test_types), 1), size=(800, length(plots)*400))
         if save
             savefig(p, name)
         else
             display(p)
         end
     end
-    # println(cost)
+
+    if !print && !plot_all
+        if time() - last_time > 1.0
+            update(progress_bar)
+            last_time = time()
+        end
+    end
+
     return cost
 end
+
 
 function optimize()
     global initial_pid_params, pid_method, lower, upper, desired_water_level
 
-    if gaining
+    start_values = initial_pid_params[control_method][pid_method]
+    if pid_method == "PID" && !optimize_t_i
+        start_values = initial_pid_params[control_method]["PID"][[1, 3]]
+    end
+    if gain_scheduling
         schedules = []
         percentage = 0
         for percentage in 35:5:75
             desired_water_level = percentage/100*0.63
-            # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing())
-            results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(iterations=Int(1e8), time_limit=60.0*10.0))
+            results = Optim.optimize(objective, start_values, SimulatedAnnealing(), Optim.Options(time_limit=seconds))
             println(summary(results))
             objective(Optim.minimizer(results), true)
             push!(schedules, [Optim.minimizer(results), percentage])
@@ -181,18 +185,18 @@ function optimize()
             println("Level: ", [schedule[2] for schedule in schedules])
         end
     else
-        results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(iterations=Int(1e6), time_limit=60.0*1.0))
-        # results = Optim.optimize(objective, lower, upper, initial_pid_params, SimulatedAnnealing(), Optim.Options(time_limit=60.0*5.0))
-        println(summary(results))
+        results = Optim.optimize(objective, start_values, SimulatedAnnealing(), Optim.Options(time_limit=seconds))
         objective(Optim.minimizer(results), true)
     end
 end
 
 if optimizing
-    println("optimizing...")
     optimize()
-    println("avg sol time:")
-    calc_avg_time()
+    println("The simulation was ", round(Tf / calc_avg_time()), " times faster than realtime.")
 else
-    objective(initial_pid_params, true)
+    objective(initial_pid_params[control_method][pid_method], true)
 end
+
+
+println("Tuned params: ", initial_pid_params[control_method][pid_method])
+YAML.write_file("params.yaml", initial_pid_params)

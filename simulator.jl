@@ -7,8 +7,10 @@ using Polynomials
 include("process_data.jl")
 include("pid.jl")
 
+
 disturbance1, disturbance2, disturbance3, bigdisturbance, frequency_fill_rate, valve_fill_rate, rate_to_frequency, rate_to_valve = get_polynomials()
 
+println("initializing simulator...")
 alg = MethodOfSteps(Tsit5())
 total_time = 0.0
 total_solves = 0

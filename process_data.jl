@@ -71,9 +71,10 @@ end
 function get_polynomials(;load=true)
     save_file = ".polynomials.jld"
     if load && isfile(save_file)
-        println("deserializing... ")
+        println("deserializing polynomials... ")
         return deserialize(save_file)
     end
+    println("loading data and fitting polynomials...")
 
     data = CSV.read("data/TankData.csv", DataFrame)
     p1 = plot()
