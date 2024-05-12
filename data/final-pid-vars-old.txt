@@ -1,0 +1,155 @@
+valve
+     PID
+          Objective summary: works!!
+               Test type: nominal
+               Control method: valve
+               PID method: PID
+               Extreme level: 0.31215310304035276
+               Desired level: 0.315
+               Overswing percentage: -0.9037768125864247%
+               Stable deviation percentage: 1.3401188368322845%
+               Time to reach level: 26.7
+               Pid params: [1.469501309936565, 98.67172806572201, 0.006720787084272373]
+               Cost: 0.16071188368322845
+               Last state: [0.31156309394498166, 0.3148845559635828, -0.006439618113984547, 0.006271192587386457, 0.3149614906311035, 0.3126936114311321, 0.3116085568750892]
+     2-test: [59.015247907658065, 3.4547044297238307, 19.408988266927114]
+
+        more agressive:
+        Objective summary:
+                Test type: nominal
+                Control method: valve
+                PID method: PID
+                Max level: 0.3209508168132679
+                Desired level: 0.315
+                Overswing percentage: 1.8891481946882296%
+                Stable deviation percentage: 1.2126985598393158%
+                Time to reach level: 35.6
+                Pid params: [66.89274466982444, 19.397517514566974, 7.51348347844896]
+                Cost: 1.0632745977701201
+
+     PI
+    Objective summary:
+         Test type: nominal
+         Control method: valve
+         PID method: PI
+         Extreme level: 0.3170439562881461
+         Desired level: 0.315
+         Overswing percentage: 0.6488750121098654%
+         Stable deviation percentage: 0.3772000870732911%
+         Time to reach level: 13.2
+         Pid params: [1.6240592869466244, 117.26823413122258]
+         Cost: 0.4552875882842777
+         Last state: [0.31301360946083084, 0.31970034254501534, -0.006452822345774278, 0.006314031758190394, 0.31980743408203127, 0.3132689738499444, 0.31308102744746]
+
+    PD
+        Objective summary:
+                Test type: nominal
+                Control method: valve
+                PID method: PD
+                Max level: 0.3211422399164011
+                Desired level: 0.315
+                Overswing percentage: 1.9499174337781318%
+                Stable deviation percentage: 1.0786828349458533%
+                Time to reach level: 29.5
+                Pid params: [48.05602757491199, 6.368196655019822, 42.519161546027966]
+                Cost: 1.0241029446934498
+
+    P
+        Objective summary:
+                Test type: top
+                Control method: valve
+                PID method: P
+                Extreme level: 0.31519862692199035
+                Desired level: 0.315
+                Overswing percentage: -0.06305616571122301%
+                Stable deviation percentage: 0.10117711452930923%
+                Time to reach level: 48.5
+                Pid params: [1.4106815252327856, 31.819539310894775]
+                Cost: 1.1163513587725205
+
+    FF with PD
+        Objective summary:
+            Test type: top
+            Control method: valve
+            PID method: FF
+            Extreme level: 0.30266269141533086
+            Desired level: 0.315
+            Overswing percentage: 3.916605899894964%
+            Stable deviation percentage: 0.6024665542620022%
+            Time to reach level: 40.6
+            Pid params: [33.09474575265379, 9.731016180478314]
+            Cost: 2.137305292261876
+    
+frequency
+     PID
+    Objective summary:
+         Test type: nominal
+         Control method: frequency
+         PID method: PID
+         Extreme level: 0.31969857334484564
+         Desired level: 0.315
+         Overswing percentage: 1.4916105856652813%
+         Stable deviation percentage: 0.6852667984717784%
+         Time to reach level: 105.0
+         Pid params: [4.284566361661511, 87.92712966387735, 0.462893527450292]
+         Cost: 0.8394278570383065
+         Last state: [0.313454904879075, 27.46791933194847, -0.006456834158269206, 0.011983079875615693, 27.439041137695312, 28.734037305042712, 0.3120850179299495]
+
+
+    PD
+    Objective summary:
+         Test type: nominal
+         Control method: frequency
+         PID method: PD
+         Extreme level: 0.31462251034541533
+         Desired level: 0.315
+         Overswing percentage: -0.11983798558243583%
+         Stable deviation percentage: 0.250326312217334%
+         Time to reach level: 13.7
+         Pid params: [2.7932707800610634, 0.15638595060619714, 51.66289693699911]
+         Cost: 0.06812787779217142
+
+    PI
+    Objective summary:
+         Test type: nominal
+         Control method: frequency
+         PID method: PI
+         Extreme level: 0.3142199071373347
+         Desired level: 0.315
+         Overswing percentage: -0.24764852783024843%
+         Stable deviation percentage: 0.2836323316905764%
+         Time to reach level: 36.0
+         Pid params: [1.684339927650809, 14.739090829129387]
+         Cost: 0.15796983673658163
+
+    P
+    Objective summary:
+         Test type: nominal
+         Control method: frequency
+         PID method: P
+         Extreme level: 0.3151058127101716
+         Desired level: 0.315
+         Overswing percentage: 0.03359133656240353%
+         Stable deviation percentage: 0.080390274053472%
+         Time to reach level: 11.6
+         Pid params: [3.045664269993279, 51.984515892622895]
+         Cost: 0.03819669833164151
+
+     FF
+    Objective summary:
+         Test type: nominal
+         Control method: frequency
+         PID method: FF
+         Extreme level: 0.3180326060950761
+         Desired level: 0.315
+         Overswing percentage: 0.9627320936749546%
+         Stable deviation percentage: 0.40231562122540554%
+         Time to reach level: 13.1
+         Pid params: [2.7932707800610634, 0.15638595060619714]
+         Cost: 0.2617649780110563
+
+Gain scheduling 
+Kps: [4.28, 3.547267438443421, 4.28, 4.128465320063188, 3.055232003840056, 2.8249399963377924, 3.454849915141371, 2.261052340799811, 2.459565622083224]
+Tis: [87.93, 94.65272240117692, 87.93, 86.66345010216122, 79.31499808937602, 88.71753047872085, 113.66939959942995, 89.64785468104482, 114.02010097538509]
+Tds: [0.46, -1.9551178946203924, 0.46, 0.45566098147777856, -3.9297050485055816, -3.9119700005333335, -4.742663771726412, -0.03203398436516447, -24.806408176454376]
+Level: [35, 40, 45, 50, 55, 60, 65, 70, 75]
