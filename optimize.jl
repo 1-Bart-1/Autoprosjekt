@@ -10,19 +10,18 @@ include("simulator.jl")
 USER INPUT
 """
 
-control_method = "frequency" # available control_methods = ["valve", "frequency", "none"]
-pid_method = "PD"
+control_method = "valve" # available control_methods = ["valve", "frequency", "none"]
+pid_method = "PID" # available pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 
 Tf = 200.0 # total simulation time
 Ts = 0.1 # sample time of pid controller
 delay = 0.15 # delay from output of pid controller to change in inflow rate
 desired_water_level = 0.63*0.5 # desired water level in meter
 test_types = ["nominal"] # available test_types = ["disturbance1", "disturbance2", "disturbance3", "big-disturbance", "no-disturbance", "nominal"]
-pid_methods = ["PI"] # available pid_methods = ["PID", "PI", "P", "PD", "LL", "FF"]
 
-optimizing = false
-seconds = 10
-gain_scheduling = false # gain scheduling is only implemented for PID
+optimizing = true
+seconds = 60
+gain_scheduling = true # gain scheduling is only implemented for PID
 plot_all = false
 optimize_t_i = false
 
@@ -38,7 +37,6 @@ OPTIMIZATION
 """
 
 initial_pid_params = YAML.load_file("params.yaml")
-println("Initial pid params: ", initial_pid_params[control_method][pid_method])
 
 start_time = time()
 last_time = time()
@@ -103,12 +101,12 @@ function objective(pid_params, print=false)
         end
 
         push!(times, time_reached_level)
-
+        
         overswing_cost = max(overswing, overswing_percentage*p.desired_water_level) / p.desired_water_level
-
+        
         time_reached_level = (test_type == "nominal") ? (time_reached_level - Tf/2) : time_reached_level
         time_cost = time_reached_level
-
+        
         # stable_deviation = abs(sol.u[end][1] - p.desired_water_level)
         u_values_after_time = [u[1] for u in sol.u[index:end]]
         differences = abs.(u_values_after_time .- desired_water_level)
@@ -126,7 +124,7 @@ function objective(pid_params, print=false)
         if print
             initial_pid_params[control_method][pid_method] = pid_params
 
-            println("Objective summary:")
+            println("objective summary:")
             println("\t Test type: ", test_type)
             println("\t Control method: ", p.control_method)
             println("\t PID method: ", pid_method)
@@ -142,7 +140,7 @@ function objective(pid_params, print=false)
     end
 
     # Tf = min(max(times...) * 2, 200) # this can speed up the optimizing process, but is less stable
-
+    
     if print || plot_all
         p = plot(plots..., layout=(length(test_types), 1), size=(800, length(plots)*400))
         if save
@@ -158,35 +156,55 @@ function objective(pid_params, print=false)
             last_time = time()
         end
     end
-
+    
     return cost
 end
 
 
 function optimize()
-    global initial_pid_params, pid_method, lower, upper, desired_water_level
-
-    start_values = initial_pid_params[control_method][pid_method]
-    if pid_method == "PID" && !optimize_t_i
-        start_values = initial_pid_params[control_method]["PID"][[1, 3]]
-    end
+    global initial_pid_params, pid_method, lower, upper, desired_water_level, progress_bar
+    
     if gain_scheduling
+        @assert pid_method == "PID"
+
         schedules = []
         percentage = 0
-        for percentage in 35:5:75
+
+        println("\noptimizing using gain scheduling...")
+        for (i, percentage) in enumerate(initial_pid_params[control_method]["gain_scheduling"]["levels"])
+            progress_bar = ProgressBar(total=seconds)
+            set_description(progress_bar, "optimizing round $i of $(length(initial_pid_params[control_method]["gain_scheduling"]["levels"]))... ")
+
             desired_water_level = percentage/100*0.63
+            start_values = [initial_pid_params[control_method]["gain_scheduling"]["Kps"][i],
+                            initial_pid_params[control_method]["gain_scheduling"]["Tis"][i],
+                            initial_pid_params[control_method]["gain_scheduling"]["Tds"][i]]
+            println("start values: ", start_values)
+            if pid_method == "PID" && !optimize_t_i
+                start_values = start_values[[1, 3]]
+            end
             results = Optim.optimize(objective, start_values, SimulatedAnnealing(), Optim.Options(time_limit=seconds))
-            println(summary(results))
             objective(Optim.minimizer(results), true)
-            push!(schedules, [Optim.minimizer(results), percentage])
-            println("Kps: ", [schedule[1][1] for schedule in schedules])
-            println("Tis: ", [schedule[1][2] for schedule in schedules])
-            println("Tds: ", [schedule[1][3] for schedule in schedules])
-            println("Level: ", [schedule[2] for schedule in schedules])
+            initial_pid_params[control_method]["gain_scheduling"]["Kps"][i] = Optim.minimizer(results)[1]
+            initial_pid_params[control_method]["gain_scheduling"]["Tis"][i] = optimize_t_i ? Optim.minimizer(results)[2] : initial_pid_params[control_method]["gain_scheduling"]["Tis"][i]
+            initial_pid_params[control_method]["gain_scheduling"]["Tds"][i] = optimize_t_i ? Optim.minimizer(results)[3] : Optim.minimizer(results)[2]
+            println()
         end
     else
+        start_values = initial_pid_params[control_method][pid_method]
+        println("\noptimizing...")
+        println("initial pid params: ", initial_pid_params[control_method][pid_method])
+        if pid_method == "PID" && !optimize_t_i
+            start_values = initial_pid_params[control_method]["PID"][[1, 3]]
+        end
         results = Optim.optimize(objective, start_values, SimulatedAnnealing(), Optim.Options(time_limit=seconds))
         objective(Optim.minimizer(results), true)
+        println("optimized params: ", initial_pid_params[control_method][pid_method])
+        if pid_method == "PID" && !optimize_t_i
+            initial_pid_params[control_method]["PID"][[1, 3]] = Optim.minimizer(results)
+        else
+            initial_pid_params[control_method][pid_method] = Optim.minimizer(results)
+        end
     end
 end
 
@@ -198,5 +216,4 @@ else
 end
 
 
-println("Tuned params: ", initial_pid_params[control_method][pid_method])
 YAML.write_file("params.yaml", initial_pid_params)
